@@ -12,7 +12,7 @@ class TopicRepository {
     String? q,
   }) async {
     try {
-      final response = await apiClient.dio.get('/Topic', queryParameters: {
+      final response = await apiClient.dio.get('/Topics', queryParameters: {
         'pageNumber': pageNumber,
         'pageSize': pageSize,
         if (q != null) 'q': q,
@@ -32,7 +32,7 @@ class TopicRepository {
 
   Future<Topic> fetchTopicById(String id) async {
     try {
-      final response = await apiClient.dio.get('/Topic/$id');
+      final response = await apiClient.dio.get('/Topics/$id');
       // Thường thì chi tiết cũng nằm trong field 'data'
       final data = response.data['success'] == true ? response.data['data'] : response.data;
       return Topic.fromJson(data);
@@ -43,7 +43,7 @@ class TopicRepository {
 
   Future<Lesson> fetchLessonById(String id) async {
     try {
-      final response = await apiClient.dio.get('/Lesson/$id');
+      final response = await apiClient.dio.get('/Lessons/$id');
       final data = response.data['success'] == true ? response.data['data'] : response.data;
       return Lesson.fromJson(data);
     } catch (e) {
