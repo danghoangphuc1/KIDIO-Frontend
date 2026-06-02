@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "374569495508",
+    "project_id": "kidio-bbfb6",
+    "storage_bucket": "kidio-bbfb6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374569495508:android:3a89235fe40a36bfdf8441",
+        "android_client_info": {
+          "package_name": "com.example.kidio_client"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "374569495508-tio3v8jsuij3u57j036ms9vqke3n8voh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kidio_client",
+            "certificate_hash": "135aa061c0b9b3bfdac66d2bcac135b34e7ad46c"
+          }
+        },
+        {
+          "client_id": "374569495508-vuonlvgep7ike3cps4f8n1bsv88v2kgm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwLQLok85C43TzZQOYpITbV3wIPctAtMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "374569495508-vuonlvgep7ike3cps4f8n1bsv88v2kgm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

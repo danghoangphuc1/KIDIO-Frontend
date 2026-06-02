@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "374569495508",
+    "project_id": "kidio-bbfb6",
+    "storage_bucket": "kidio-bbfb6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374569495508:android:3a89235fe40a36bfdf8441",
+        "android_client_info": {
+          "package_name": "com.example.kidio_client"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwLQLok85C43TzZQOYpITbV3wIPctAtMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
