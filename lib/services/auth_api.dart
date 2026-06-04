@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../api/api_client.dart';
 
 class LoginResponse {
   final bool success;
@@ -98,12 +99,31 @@ class AuthApi {
     }
   }
 
+  Future<LoginResponse> resendVerification(String email) async {
+    try {
+      final response = await _dio.post('Auth/resend-verification', data: {
+        'email': email,
+      });
+      return LoginResponse(
+        success: response.data['success'] ?? false,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return LoginResponse(success: false, message: e.toString());
+    }
+  }
+
   LoginResponse _handleDioError(DioException e) {
-    String errorMsg = "Connection error";
+    if (e.error is ApiException) {
+      return LoginResponse(success: false, message: (e.error as ApiException).message);
+    }
+
+    String errorMsg = "Lỗi kết nối mạng";
     final dynamic responseData = e.response?.data;
     if (responseData is Map) {
-      errorMsg = responseData['message'] ?? e.message ?? "Unknown error";
-      // Handle validation errors if any
+      errorMsg = responseData['message'] ?? responseData['Message'] ?? "Đã có lỗi xảy ra";
       if (responseData['errors'] != null) {
         final errors = responseData['errors'];
         if (errors is List) {
@@ -115,7 +135,11 @@ class AuthApi {
     } else if (responseData is String && responseData.isNotEmpty) {
       errorMsg = responseData;
     } else {
-      errorMsg = "Error ${e.response?.statusCode}: ${e.message}";
+      if (e.type == DioExceptionType.connectionTimeout) {
+        errorMsg = "Kết nối quá chậm, vui lòng thử lại";
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMsg = "Không thể kết nối đến máy chủ";
+      }
     }
     return LoginResponse(success: false, message: errorMsg);
   }

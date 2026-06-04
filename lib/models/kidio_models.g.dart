@@ -77,6 +77,60 @@ Map<String, dynamic> _$TopicToJson(Topic instance) => <String, dynamic>{
       'totalLessons': instance.totalLessons,
     };
 
+Achievement _$AchievementFromJson(Map<String, dynamic> json) => Achievement(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      iconUrl: json['iconUrl'] as String?,
+      unlockedAt: DateTime.parse(json['unlockedAt'] as String),
+    );
+
+Map<String, dynamic> _$AchievementToJson(Achievement instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'title': instance.title,
+      'description': instance.description,
+      'iconUrl': instance.iconUrl,
+      'unlockedAt': instance.unlockedAt.toIso8601String(),
+    };
+
+PronunciationScore _$PronunciationScoreFromJson(Map<String, dynamic> json) =>
+    PronunciationScore(
+      id: json['id'] as String,
+      word: json['word'] as String,
+      accuracyScore: (json['accuracyScore'] as num).toInt(),
+      fluencyScore: (json['fluencyScore'] as num).toInt(),
+      completenessScore: (json['completenessScore'] as num).toInt(),
+      overallScore: (json['overallScore'] as num).toInt(),
+      isPassed: json['isPassed'] as bool,
+      feedback: json['feedback'] as String,
+      audioStorageUrl: json['audioStorageUrl'] as String,
+    );
+
+Map<String, dynamic> _$PronunciationScoreToJson(PronunciationScore instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'word': instance.word,
+      'accuracyScore': instance.accuracyScore,
+      'fluencyScore': instance.fluencyScore,
+      'completenessScore': instance.completenessScore,
+      'overallScore': instance.overallScore,
+      'isPassed': instance.isPassed,
+      'feedback': instance.feedback,
+      'audioStorageUrl': instance.audioStorageUrl,
+    };
+
+TtsResponse _$TtsResponseFromJson(Map<String, dynamic> json) => TtsResponse(
+      audioUrl: json['audioUrl'] as String,
+      text: json['text'] as String?,
+    );
+
+Map<String, dynamic> _$TtsResponseToJson(TtsResponse instance) =>
+    <String, dynamic>{
+      'audioUrl': instance.audioUrl,
+      'text': instance.text,
+    };
+
 PagedResult<T> _$PagedResultFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,

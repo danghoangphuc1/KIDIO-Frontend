@@ -57,17 +57,40 @@ class ApiClient {
           }
         }
 
-        String message = 'An unexpected error occurred';
+        String message = 'Đã có lỗi xảy ra, vui lòng thử lại sau';
         if (e.response != null) {
-          if (e.response?.data is Map) {
-            message = e.response?.data?['message'] ?? e.response?.statusMessage ?? message;
+          final dynamic data = e.response?.data;
+          int? statusCode = e.response?.statusCode;
+          
+          if (data is Map) {
+            message = data['message'] ?? data['Message'] ?? e.response?.statusMessage ?? 'Lỗi hệ thống ($statusCode)';
+            // Xử lý lỗi validation từ .NET
+            if (data['errors'] != null) {
+              final errors = data['errors'];
+              if (errors is Map) {
+                message = errors.values.expand((v) => v is List ? v : [v]).join("\n");
+              }
+            }
+          } else if (data is String && data.isNotEmpty) {
+            message = data;
           } else {
-            message = e.response?.data?.toString() ?? e.response?.statusMessage ?? message;
+            message = 'Lỗi từ máy chủ ($statusCode)';
           }
-          final apiException = ApiException(message, statusCode: e.response?.statusCode);
+          final apiException = ApiException(message, statusCode: statusCode);
           return handler.next(e.copyWith(error: apiException));
         }
-        return handler.next(e);
+
+        // Xử lý lỗi kết nối mạng
+        if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+          message = 'Kết nối quá chậm, vui lòng kiểm tra lại mạng Wi-Fi';
+        } else if (e.type == DioExceptionType.connectionError) {
+          message = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra IP hoặc Firewall';
+        } else if (e.type == DioExceptionType.badCertificate) {
+          message = 'Lỗi bảo mật chứng chỉ (SSL). Vui lòng cấu hình lại HTTPS';
+        }
+
+        final apiException = ApiException(message);
+        return handler.next(e.copyWith(error: apiException));
       },
     ));
 

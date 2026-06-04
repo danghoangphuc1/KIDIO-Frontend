@@ -44,6 +44,8 @@ class AuthRepository {
     );
   }
 
+  Future<LoginResponse> resendVerification(String email) => _authApi.resendVerification(email);
+
   Future<void> logout() async {
     await _storage.delete(key: 'accessToken');
     await _storage.delete(key: 'refreshToken');

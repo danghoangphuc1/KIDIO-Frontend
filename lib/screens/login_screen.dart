@@ -40,13 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (idToken != null) {
         final success = await authProvider.loginWithGoogle(idToken);
         if (success && mounted) {
-          // Navigation is handled by the root AuthWrapper usually, 
-          // but if not, we can push here.
+          // Điều hướng được xử lý bởi AuthWrapper
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: No ID Token received.')),
+            const SnackBar(content: Text('Lỗi: Không nhận được ID Token.')),
           );
         }
       }
@@ -56,10 +55,10 @@ class _LoginScreenState extends State<LoginScreen> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Google Sign-In Error'),
-            content: Text('Failed to sign in with Google.\n\n$error'),
+            title: const Text('Lỗi đăng nhập Google'),
+            content: Text('Không thể đăng nhập bằng Google.\n\n$error'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đồng ý'))
             ],
           ),
         );
@@ -81,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F9FF), // Light blue background
+      backgroundColor: const Color(0xFFF5F9FF),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -92,7 +91,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 20),
-                  // Playful Logo/Icon
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -119,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const Text(
-                    'English for Kids',
+                    'Tiếng Anh cho bé',
                     style: TextStyle(fontSize: 16, color: Colors.blueGrey, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 30),
@@ -140,7 +138,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                  // Email Field
                   TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(
@@ -153,16 +150,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) => value == null || value.isEmpty ? 'Please enter email' : null,
+                    validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập email' : null,
                   ),
                   const SizedBox(height: 16),
 
-                  // Password Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
                     decoration: InputDecoration(
-                      hintText: 'Password',
+                      hintText: 'Mật khẩu',
                       prefixIcon: const Icon(Icons.lock_outline),
                       filled: true,
                       fillColor: Colors.white,
@@ -171,11 +167,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) => value == null || value.isEmpty ? 'Please enter password' : null,
+                    validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập mật khẩu' : null,
                   ),
                   const SizedBox(height: 24),
 
-                  // Login Button
                   authProvider.isLoading
                       ? const CircularProgressIndicator()
                       : SizedBox(
@@ -191,32 +186,30 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                             ),
-                            child: const Text('LOG IN', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            child: const Text('ĐĂNG NHẬP', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
                         ),
                   const SizedBox(height: 12),
 
-                  // Or divider
                   const Row(
                     children: [
                       Expanded(child: Divider()),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('OR', style: TextStyle(color: Colors.grey)),
+                        child: Text('HOẶC', style: TextStyle(color: Colors.grey)),
                       ),
                       Expanded(child: Divider()),
                     ],
                   ),
                   const SizedBox(height: 12),
 
-                  // Google Sign In
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: OutlinedButton.icon(
                       onPressed: () => _handleGoogleSignIn(authProvider),
                       icon: const Icon(Icons.login),
-                      label: const Text('SIGN IN WITH GOOGLE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      label: const Text('ĐĂNG NHẬP VỚI GOOGLE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.blueAccent),
                         shape: RoundedRectangleBorder(
@@ -231,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Text("Don't have an account? "),
+                      const Text("Chưa có tài khoản? "),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -245,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: const Text(
-                          'SIGN UP',
+                          'ĐĂNG KÝ',
                           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent),
                         ),
                       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'verify_email_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,18 +28,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _handleRegister(AuthProvider authProvider) async {
     if (_formKey.currentState!.validate()) {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      
       final success = await authProvider.register(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: email,
+        password: password,
         confirmPassword: _confirmPasswordController.text,
         displayName: _nameController.text.trim(),
       );
       
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please log in.')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerifyEmailScreen(
+              initialEmail: email,
+              password: password,
+            ),
+          ),
         );
-        Navigator.pop(context);
       }
     }
   }
@@ -54,7 +63,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.blueAccent),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            context.read<AuthProvider>().clearError();
+            Navigator.pop(context);
+          },
         ),
       ),
       body: SafeArea(
@@ -66,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Join Kidio!',
+                  'Tham gia Kidio!',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -75,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Create an account to start learning English with fun.',
+                  'Tạo tài khoản để bắt đầu hành trình học tiếng Anh thú vị.',
                   style: TextStyle(fontSize: 16, color: Colors.blueGrey),
                 ),
                 const SizedBox(height: 32),
@@ -98,33 +110,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 TextFormField(
                   controller: _nameController,
-                  decoration: _buildInputDecoration('Full Name', Icons.person_outline),
-                  validator: (value) => value == null || value.isEmpty ? 'Please enter name' : null,
+                  decoration: _buildInputDecoration('Họ và Tên', Icons.person_outline),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Vui lòng nhập tên';
+                    if (value.length < 2) return 'Tên phải có ít nhất 2 ký tự';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 
                 TextFormField(
                   controller: _emailController,
                   decoration: _buildInputDecoration('Email', Icons.email_outlined),
-                  validator: (value) => value == null || value.isEmpty ? 'Please enter email' : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Vui lòng nhập email';
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (!emailRegex.hasMatch(value)) return 'Định dạng email không hợp lệ';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: _buildInputDecoration('Password', Icons.lock_outline),
-                  validator: (value) => value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
+                  decoration: _buildInputDecoration('Mật khẩu', Icons.lock_outline),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Vui lòng nhập mật khẩu';
+                    if (value.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
+                    if (!RegExp(r'[A-Z]').hasMatch(value)) return 'Cần ít nhất 1 chữ hoa';
+                    if (!RegExp(r'[a-z]').hasMatch(value)) return 'Cần ít nhất 1 chữ thường';
+                    if (!RegExp(r'[0-9]').hasMatch(value)) return 'Cần ít nhất 1 chữ số';
+                    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) return 'Cần ít nhất 1 ký tự đặc biệt';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: true,
-                  decoration: _buildInputDecoration('Confirm Password', Icons.lock_reset),
+                  decoration: _buildInputDecoration('Xác nhận mật khẩu', Icons.lock_reset),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please confirm password';
-                    if (value != _passwordController.text) return 'Passwords do not match';
+                    if (value == null || value.isEmpty) return 'Vui lòng nhập lại mật khẩu';
+                    if (value != _passwordController.text) return 'Mật khẩu không khớp';
                     return null;
                   },
                 ),
@@ -145,7 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text('CREATE ACCOUNT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          child: const Text('TẠO TÀI KHOẢN', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       ),
                 const SizedBox(height: 24),

@@ -89,9 +89,33 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> resendVerification(String email) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.resendVerification(email);
+      if (response.success) {
+        return true;
+      } else {
+        _errorMessage = response.message ?? 'Failed to resend email';
+        return false;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     _isAuthenticated = false;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
     notifyListeners();
   }
 }
