@@ -255,7 +255,7 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Vui lòng nhập tuổi';
                         final age = int.tryParse(v);
-                        if (age == null || age < 2 || age > 12) return 'Tuổi từ 2 đến 12 là tốt nhất';
+                        if (age == null || age < 2 || age > 10) return 'Tuổi từ 2 đến 10 là tốt nhất';
                         return null;
                       },
                     ),

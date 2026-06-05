@@ -141,7 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (!RegExp(r'[A-Z]').hasMatch(value)) return 'Cần ít nhất 1 chữ hoa';
                     if (!RegExp(r'[a-z]').hasMatch(value)) return 'Cần ít nhất 1 chữ thường';
                     if (!RegExp(r'[0-9]').hasMatch(value)) return 'Cần ít nhất 1 chữ số';
-                    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) return 'Cần ít nhất 1 ký tự đặc biệt';
+                    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>\\^$*\[\]/_~`]').hasMatch(value)) return 'Cần ít nhất 1 ký tự đặc biệt';
                     return null;
                   },
                 ),

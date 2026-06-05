@@ -21,14 +21,14 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   late TextEditingController _emailController;
   bool _isErrorMode = false;
   bool _isChecking = false;
-  bool _isVerified = false;
+  bool _isVerified = false; // Trạng thái xác thực thành công
   Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.initialEmail);
-    // Start polling every 3 seconds to check if verified
+    // Bắt đầu tự động kiểm tra mỗi 3 giây
     _startPolling();
   }
 
@@ -53,8 +53,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     
     if (!silent) setState(() => _isChecking = true);
     
+    // Thử đăng nhập để kiểm tra xem email đã được xác thực chưa
     final success = await authProvider.login(
-      widget.initialEmail, // Always check with the original registered email
+      widget.initialEmail, 
       widget.password,
     );
 
@@ -63,9 +64,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       
       if (success) {
         _pollingTimer?.cancel();
-        setState(() => _isVerified = true);
+        setState(() {
+          _isVerified = true;
+          _isErrorMode = false;
+        });
       } else if (!silent) {
-        // If manual check failed, decide if we show error screen
         final error = authProvider.errorMessage?.toLowerCase() ?? '';
         if (error.contains('verified') || error.contains('confirm')) {
           setState(() => _isErrorMode = true);
@@ -80,12 +83,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   Future<void> _handleNext() async {
     if (_isVerified) {
-      // Navigate to home / child selection
+      // Nếu đã xác thực xong, nhấn Tiếp tục để vào màn hình chọn bé
       Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
 
     if (_isErrorMode) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       context.read<AuthProvider>().clearError();
       setState(() {
         _isErrorMode = false;
@@ -100,10 +104,18 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   Future<void> _handleResend() async {
     final authProvider = context.read<AuthProvider>();
     final emailToSend = _emailController.text.trim();
+    
+    if (emailToSend.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập email'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     final success = await authProvider.resendVerification(emailToSend);
     
     if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã gửi lại email xác thực!'), backgroundColor: Colors.green),
@@ -149,20 +161,28 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (_isVerified) ...[
-                const Icon(Icons.check_circle, size: 100, color: Colors.green),
+                // Trang xác thực thành công (Giống ảnh 3 bạn gửi)
+                const Icon(Icons.check_circle, size: 120, color: Colors.green),
                 const SizedBox(height: 30),
                 const Text(
                   "Email của bạn đã được xác thực!",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20)),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 15),
                 const Text(
-                  "Nhấn 'Tiếp tục' để bắt đầu sử dụng KidIO.",
+                  "Bằng cách tiếp tục sử dụng ứng dụng, bạn đồng ý với các điều khoản dịch vụ và chính sách bảo mật của chúng tôi.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, color: Colors.blueGrey),
+                  style: TextStyle(fontSize: 14, color: Colors.blueGrey),
+                ),
+                const SizedBox(height: 40),
+                const Text(
+                  "Nhấn 'Tiếp tục' để bắt đầu hành trình học tập cùng KidIO.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Color(0xFF1A237E), fontWeight: FontWeight.w500),
                 ),
               ] else if (!_isErrorMode) ...[
+                // Trang hướng dẫn
                 const Icon(Icons.mail_outline, size: 100, color: Colors.orangeAccent),
                 const SizedBox(height: 40),
                 const Text(
@@ -185,6 +205,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   ),
                 ),
               ] else ...[
+                // Trang báo lỗi
                 const Text(
                   "Ối! Bạn vẫn chưa xác thực. Vui lòng kiểm tra lại email.",
                   textAlign: TextAlign.center,
@@ -195,7 +216,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(30),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+                    ],
                   ),
                   child: TextField(
                     controller: _emailController,

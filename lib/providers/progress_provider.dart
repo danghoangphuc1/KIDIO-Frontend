@@ -11,11 +11,13 @@ class ProgressProvider extends ChangeNotifier {
 
   List<LessonProgress> _recentActivities = [];
   List<Achievement> _achievements = [];
+  ChildProgressSummary? _summary;
   bool _isLoading = false;
   String? _errorMessage;
 
   List<LessonProgress> get recentActivities => _recentActivities;
   List<Achievement> get achievements => _achievements;
+  ChildProgressSummary? get summary => _summary;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -28,10 +30,12 @@ class ProgressProvider extends ChangeNotifier {
       final results = await Future.wait([
         _progressRepository.getRecentActivities(childId),
         _achievementRepository.getByChild(childId),
+        _progressRepository.getChildSummary(childId),
       ]);
       
       _recentActivities = results[0] as List<LessonProgress>;
       _achievements = results[1] as List<Achievement>;
+      _summary = results[2] as ChildProgressSummary;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -40,25 +44,30 @@ class ProgressProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> submitProgress({
+  Future<LessonProgress?> submitProgress({
     required String childId,
     required String lessonId,
     required int scorePercent,
     required int timeSpentSeconds,
   }) async {
     try {
-      await _progressRepository.submitProgress(
+      final result = await _progressRepository.submitProgress(
         childId: childId,
         lessonId: lessonId,
         scorePercent: scorePercent,
         timeSpentSeconds: timeSpentSeconds,
       );
-      // Reload progress to see if new achievements were unlocked
+      
+      // Reload everything to get updated stars, streaks, and badges
       await loadChildProgress(childId);
-      return true;
+      return result;
     } catch (e) {
       _errorMessage = e.toString();
-      return false;
+      return null;
     }
+  }
+
+  Future<LessonProgress?> checkLessonCompletion(String childId, String lessonId) async {
+    return await _progressRepository.getLessonProgress(childId, lessonId);
   }
 }

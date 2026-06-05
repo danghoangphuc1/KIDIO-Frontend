@@ -27,13 +27,14 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   late Future<Lesson> _lessonFuture;
   bool _isSubmitting = false;
   bool _isPlaying = false;
+  bool _isCompleted = false;
   late DateTime _startTime;
 
   @override
   void initState() {
     super.initState();
     _startTime = DateTime.now();
-    _lessonFuture = _fetchLesson();
+    _lessonFuture = _fetchLessonAndStatus();
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) setState(() => _isPlaying = state == PlayerState.playing);
     });
@@ -45,11 +46,20 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     super.dispose();
   }
 
-  Future<Lesson> _fetchLesson() async {
-    final repository = context.read<TopicRepository>();
+  Future<Lesson> _fetchLessonAndStatus() async {
+    final topicRepo = context.read<TopicRepository>();
+    final progressProvider = context.read<ProgressProvider>();
+    final childId = context.read<ChildProvider>().selectedChild?.id;
+
     try {
-      final lesson = await repository.fetchLessonById(widget.lessonId);
+      final lesson = await topicRepo.fetchLessonById(widget.lessonId);
       await _cacheService.saveLesson(lesson);
+
+      if (childId != null) {
+        final progress = await progressProvider.checkLessonCompletion(childId, widget.lessonId);
+        if (mounted) setState(() => _isCompleted = progress != null);
+      }
+
       return lesson;
     } catch (e) {
       final cached = _cacheService.getLesson(widget.lessonId);
@@ -64,11 +74,20 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
       return;
     }
     try {
+      final topicRepo = context.read<TopicRepository>();
       final ttsRepo = context.read<TtsRepository>();
+      
+      // Lấy Base URL để nối vào đường dẫn audio tương đối từ server
+      final baseUrl = topicRepo.apiClient.dio.options.baseUrl.replaceAll('/api/', '');
+      
       final response = await ttsRepo.synthesize(text);
-      await _audioPlayer.play(UrlSource(response.audioUrl));
+      final fullUrl = response.audioUrl.startsWith('http') 
+          ? response.audioUrl 
+          : '$baseUrl${response.audioUrl}';
+          
+      await _audioPlayer.play(UrlSource(fullUrl));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi âm thanh: $e')));
     }
   }
 
@@ -83,24 +102,70 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   }
 
   Future<void> _finishLesson() async {
+    if (_isCompleted) {
+      Navigator.pop(context);
+      return;
+    }
+
     final childId = context.read<ChildProvider>().selectedChild?.id;
     if (childId == null) return;
+    
     final duration = DateTime.now().difference(_startTime).inSeconds;
     setState(() => _isSubmitting = true);
+    
     try {
-      final success = await context.read<ProgressProvider>().submitProgress(
+      final progress = await context.read<ProgressProvider>().submitProgress(
         childId: childId,
         lessonId: widget.lessonId,
         scorePercent: 100,
         timeSpentSeconds: duration > 0 ? duration : 1,
       );
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Học giỏi quá! Đã lưu kết quả.')));
+      
+      if (progress != null && mounted) {
+        if (progress.newAchievements != null && progress.newAchievements!.isNotEmpty) {
+          // Hiện thông báo nhận huy hiệu mới
+          await _showAchievementCelebration(progress.newAchievements!);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Học giỏi quá! Đã lưu kết quả.')));
+        }
         Navigator.pop(context);
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _showAchievementCelebration(List<Achievement> achievements) async {
+    return showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.stars, size: 80, color: Colors.orangeAccent),
+            const SizedBox(height: 16),
+            const Text('CHÚC MỪNG CON!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)),
+            const SizedBox(height: 8),
+            Text('Con vừa nhận được ${achievements.length} huy hiệu mới:', textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ...achievements.map((a) => ListTile(
+              leading: a.iconUrl != null ? Image.network(a.iconUrl!, width: 40) : const Icon(Icons.workspace_premium),
+              title: Text(a.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(a.description ?? ''),
+            )),
+          ],
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tuyệt vời!'),
+            ),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -120,7 +185,21 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         future: _lessonFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return const Center(child: Text('Ối! Không thể tải bài học.'));
+          if (snapshot.hasError) {
+             return Center(
+               child: Column(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                 children: [
+                   const Text('Ối! Không thể tải bài học.', style: TextStyle(fontSize: 18)),
+                   const SizedBox(height: 16),
+                   ElevatedButton(
+                     onPressed: () => setState(() { _lessonFuture = _fetchLessonAndStatus(); }),
+                     child: const Text('Thử lại'),
+                   )
+                 ],
+               ),
+             );
+          }
 
           final lesson = snapshot.data!;
           final plainTextContent = ContentParser.parseToPlainText(lesson.contentJson);
@@ -145,6 +224,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                         const SizedBox(height: 8),
                         Text(lesson.description!, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.blueGrey.shade600)),
                       ],
+                      if (_isCompleted)
+                        Container(
+                          margin: const EdgeInsets.only(top: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(12)),
+                          child: const Text('Đã hoàn thành ✅', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                        ),
                     ],
                   ),
                 ),
@@ -215,19 +301,20 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 100),
+                const SizedBox(height: 120),
               ],
             ),
           );
         },
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _isSubmitting 
         ? const CircularProgressIndicator()
         : FloatingActionButton.extended(
             onPressed: _finishLesson,
-            label: const Text('Con đã học xong!'),
-            icon: const Icon(Icons.check_circle),
-            backgroundColor: Colors.green,
+            label: Text(_isCompleted ? 'Quay lại bài học' : 'Con đã học xong!'),
+            icon: Icon(_isCompleted ? Icons.arrow_back : Icons.check_circle),
+            backgroundColor: _isCompleted ? Colors.blueAccent : Colors.green,
           ),
     );
   }
@@ -249,8 +336,7 @@ class _PronunciationPracticeDialogState extends State<PronunciationPracticeDialo
   void _toggleRecording() async {
     if (!_isRecording) {
       setState(() => _isRecording = true);
-      // Giả lập ghi âm trong 2 giây vì không có thư viện record trong pubspec
-      // Trong thực tế, bạn sẽ dùng thư viện 'record' để lưu file WAV
+      // Mockup recording for 2 seconds
       await Future.delayed(const Duration(seconds: 2));
       _finishRecording();
     }
@@ -258,9 +344,6 @@ class _PronunciationPracticeDialogState extends State<PronunciationPracticeDialo
 
   Future<void> _finishRecording() async {
     setState(() => _isRecording = false);
-    
-    // Lưu ý: Đây là phần mockup file vì hiện tại môi trường chưa cài thư viện ghi âm
-    // Nhưng API đã sẵn sàng để gửi file.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Tính năng ghi âm cần thư viện record. API chấm điểm đã sẵn sàng!')),
     );

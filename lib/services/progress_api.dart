@@ -39,4 +39,26 @@ class ProgressApi {
       rethrow;
     }
   }
+
+  Future<LessonProgress?> getLessonProgress(String childId, String lessonId) async {
+    try {
+      final response = await _dio.get('Progress/child/$childId/lesson/$lessonId');
+      final data = response.data['data'];
+      if (data != null) {
+        return LessonProgress.fromJson(data as Map<String, dynamic>);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<ChildProgressSummary> getChildSummary(String childId) async {
+    try {
+      final response = await _dio.get('Progress/child/$childId/summary');
+      return ChildProgressSummary.fromJson(response.data['data']);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

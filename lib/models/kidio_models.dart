@@ -8,6 +8,8 @@ class Vocabulary {
   final String word;
   final String meaning;
   final String? phoneticText;
+  final String? audioUrl;
+  final String? imageUrl;
   final int orderIndex;
 
   Vocabulary({
@@ -15,6 +17,8 @@ class Vocabulary {
     required this.word,
     required this.meaning,
     this.phoneticText,
+    this.audioUrl,
+    this.imageUrl,
     required this.orderIndex,
   });
 
@@ -27,10 +31,12 @@ class Lesson {
   final String id;
   final String title;
   final String? description;
-  final String? type;
+  final String? lessonType;
   final String? difficulty;
   final String? skillFocus;
   final int? durationSeconds;
+  final String? thumbnailUrl;
+  final String? audioUrl;
   final int orderIndex;
   final bool isPublished;
   final String? contentJson;
@@ -40,10 +46,12 @@ class Lesson {
     required this.id,
     required this.title,
     this.description,
-    this.type,
+    this.lessonType,
     this.difficulty,
     this.skillFocus,
     this.durationSeconds,
+    this.thumbnailUrl,
+    this.audioUrl,
     required this.orderIndex,
     required this.isPublished,
     this.contentJson,
@@ -59,20 +67,20 @@ class Topic {
   final String id;
   final String name;
   final String? description;
+  final String? iconUrl;
   final int orderIndex;
   final bool? isActive;
   final List<Lesson>? lessons;
-  final String? iconUrl;
   final int? totalLessons;
 
   Topic({
     required this.id,
     required this.name,
     this.description,
+    this.iconUrl,
     required this.orderIndex,
     this.isActive,
     this.lessons,
-    this.iconUrl,
     this.totalLessons,
   });
 
@@ -120,6 +128,7 @@ class Child {
   };
 }
 
+@JsonSerializable()
 class LessonProgress {
   final String id;
   final String childId;
@@ -129,6 +138,7 @@ class LessonProgress {
   final int scorePercent;
   final int timeSpentSeconds;
   final DateTime? completedAt;
+  final List<Achievement>? newAchievements; // Huy hiệu mới nhận được
 
   LessonProgress({
     required this.id,
@@ -139,29 +149,11 @@ class LessonProgress {
     required this.scorePercent,
     required this.timeSpentSeconds,
     this.completedAt,
+    this.newAchievements,
   });
 
-  factory LessonProgress.fromJson(Map<String, dynamic> json) => LessonProgress(
-    id: json['id'] as String,
-    childId: json['childId'] as String,
-    lessonId: json['lessonId'] as String,
-    isCompleted: json['isCompleted'] as bool,
-    starsEarned: json['starsEarned'] as int,
-    scorePercent: json['scorePercent'] as int,
-    timeSpentSeconds: json['timeSpentSeconds'] as int,
-    completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt'] as String) : null,
-  );
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'childId': childId,
-    'lessonId': lessonId,
-    'isCompleted': isCompleted,
-    'starsEarned': starsEarned,
-    'scorePercent': scorePercent,
-    'timeSpentSeconds': timeSpentSeconds,
-    'completedAt': completedAt?.toIso8601String(),
-  };
+  factory LessonProgress.fromJson(Map<String, dynamic> json) => _$LessonProgressFromJson(json);
+  Map<String, dynamic> toJson() => _$LessonProgressToJson(this);
 }
 
 @JsonSerializable()
@@ -170,18 +162,60 @@ class Achievement {
   final String title;
   final String? description;
   final String? iconUrl;
-  final DateTime unlockedAt;
+  final String? achievementType;
+  final DateTime? earnedAt;
 
   Achievement({
     required this.id,
     required this.title,
     this.description,
     this.iconUrl,
-    required this.unlockedAt,
+    this.achievementType,
+    this.earnedAt,
   });
 
   factory Achievement.fromJson(Map<String, dynamic> json) => _$AchievementFromJson(json);
   Map<String, dynamic> toJson() => _$AchievementToJson(this);
+}
+
+@JsonSerializable()
+class ChildProgressSummary {
+  final String childId;
+  final String childName;
+  final int totalLessonsCompleted;
+  final int totalStars;
+  final int currentStreakDays;
+  final List<TopicProgressItem> topicProgresses;
+
+  ChildProgressSummary({
+    required this.childId,
+    required this.childName,
+    required this.totalLessonsCompleted,
+    required this.totalStars,
+    required this.currentStreakDays,
+    required this.topicProgresses,
+  });
+
+  factory ChildProgressSummary.fromJson(Map<String, dynamic> json) => _$ChildProgressSummaryFromJson(json);
+}
+
+@JsonSerializable()
+class TopicProgressItem {
+  final String topicId;
+  final String topicName;
+  final int totalLessons;
+  final int completedLessons;
+  final int progressPercent;
+
+  TopicProgressItem({
+    required this.topicId,
+    required this.topicName,
+    required this.totalLessons,
+    required this.completedLessons,
+    required this.progressPercent,
+  });
+
+  factory TopicProgressItem.fromJson(Map<String, dynamic> json) => _$TopicProgressItemFromJson(json);
 }
 
 @JsonSerializable()
@@ -215,12 +249,12 @@ class PronunciationScore {
 @JsonSerializable()
 class TtsResponse {
   final String audioUrl;
-  final String? text;
+  final String? fileName;
+  final bool? isCached;
 
-  TtsResponse({required this.audioUrl, this.text});
+  TtsResponse({required this.audioUrl, this.fileName, this.isCached});
 
   factory TtsResponse.fromJson(Map<String, dynamic> json) => _$TtsResponseFromJson(json);
-  Map<String, dynamic> toJson() => _$TtsResponseToJson(this);
 }
 
 @JsonSerializable(genericArgumentFactories: true)

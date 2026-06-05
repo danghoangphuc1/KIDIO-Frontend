@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../models/kidio_models.dart';
 import '../providers/topic_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/child_provider.dart';
@@ -139,76 +140,53 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
               ? Container(
                   color: Colors.orange.shade800,
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.wifi_off, color: Colors.white, size: 16),
-                      SizedBox(width: 8),
-                      Text(
-                        'Chế độ ngoại tuyến - Đang hiển thị dữ liệu cũ',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: const Text(
+                    'Chế độ ngoại tuyến - Đang hiển thị dữ liệu cũ',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
                 )
               : const SizedBox.shrink(),
         ),
         Expanded(
-          child: Consumer<TopicProvider>(
-            builder: (context, provider, child) {
-              if (provider.isLoading && provider.topics.isEmpty) {
+          child: Consumer2<TopicProvider, ProgressProvider>(
+            builder: (context, topicProvider, progressProvider, child) {
+              if (topicProvider.isLoading && topicProvider.topics.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (provider.errorMessage != null && provider.topics.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
-                        const SizedBox(height: 16),
-                        Text(provider.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18)),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: provider.refresh,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Thử lại'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
               return RefreshIndicator(
-                onRefresh: provider.refresh,
+                onRefresh: () async {
+                  await topicProvider.refresh();
+                  final childId = context.read<ChildProvider>().selectedChild?.id;
+                  if (childId != null) {
+                    await progressProvider.loadChildProgress(childId);
+                  }
+                },
                 child: GridView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.85,
+                    childAspectRatio: 0.8,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-                  itemCount: provider.topics.length + (provider.hasMore ? 1 : 0),
+                  itemCount: topicProvider.topics.length + (topicProvider.hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
-                    if (index < provider.topics.length) {
-                      final topic = provider.topics[index];
-                      final List<Color> colors = [
-                        Colors.orange.shade100,
-                        Colors.green.shade100,
-                        Colors.purple.shade100,
-                        Colors.blue.shade100,
-                        Colors.pink.shade100,
-                        Colors.yellow.shade100,
-                      ];
-                      final cardColor = colors[index % colors.length];
-                      final iconColor = Colors.primaries[index % Colors.primaries.length];
+                    if (index < topicProvider.topics.length) {
+                      final topic = topicProvider.topics[index];
+                      
+                      // Lấy % tiến độ từ summary
+                      final progressItem = progressProvider.summary?.topicProgresses.firstWhere(
+                        (tp) => tp.topicId == topic.id,
+                        orElse: () => TopicProgressItem(topicId: topic.id, topicName: topic.name, totalLessons: 0, completedLessons: 0, progressPercent: 0),
+                      );
+
+                      final List<Color> colors = [Colors.orange, Colors.green, Colors.purple, Colors.blue, Colors.pink];
+                      final baseColor = colors[index % colors.length];
 
                       return InkWell(
                         onTap: () {
@@ -224,53 +202,47 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: cardColor,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
+                              BoxShadow(color: baseColor.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
                             ],
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: baseColor.withOpacity(0.1), shape: BoxShape.circle),
                                 child: topic.iconUrl != null
-                                    ? CachedNetworkImage(
-                                        imageUrl: topic.iconUrl!,
-                                        width: 60,
-                                        height: 60,
-                                        fit: BoxFit.contain,
-                                        placeholder: (context, url) => Icon(Icons.school, size: 40, color: iconColor),
-                                        errorWidget: (context, url, error) => Icon(Icons.book, size: 40, color: iconColor),
-                                      )
-                                    : Icon(Icons.school, size: 60, color: iconColor),
+                                    ? CachedNetworkImage(imageUrl: topic.iconUrl!, width: 50, height: 50)
+                                    : Icon(Icons.school, size: 50, color: baseColor),
                               ),
                               const SizedBox(height: 12),
                               Text(
                                 topic.name,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Color(0xFF1A237E),
-                                ),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1A237E)),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${topic.totalLessons ?? 0} bài học',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.blueGrey.shade700,
-                                  fontWeight: FontWeight.w500,
+                              const SizedBox(height: 8),
+                              // Thanh tiến độ
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: Column(
+                                  children: [
+                                    LinearProgressIndicator(
+                                      value: (progressItem?.progressPercent ?? 0) / 100,
+                                      backgroundColor: Colors.grey.shade200,
+                                      color: baseColor,
+                                      minHeight: 6,
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${progressItem?.progressPercent ?? 0}% hoàn thành',
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: baseColor),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
