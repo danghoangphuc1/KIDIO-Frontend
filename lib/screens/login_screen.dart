@@ -17,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '374569495508-vuonlvgep7ike3cps4f8n1bsv88v2kgm.apps.googleusercontent.com',
+    serverClientId: '662300435630-69e4tl4ehv1b5t7s5tqkk5mfrunqpdvl.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
 

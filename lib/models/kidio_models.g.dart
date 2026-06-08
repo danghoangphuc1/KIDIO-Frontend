@@ -238,3 +238,118 @@ Map<String, dynamic> _$PagedResultToJson<T>(
       'pageNumber': instance.page,
       'pageSize': instance.pageSize,
     };
+
+ParentDashboardChildItemResponse _$ParentDashboardChildItemResponseFromJson(
+        Map<String, dynamic> json) =>
+    ParentDashboardChildItemResponse(
+      childId: json['childId'] as String,
+      childName: json['childName'] as String,
+      age: (json['age'] as num).toInt(),
+      avatarUrl: json['avatarUrl'] as String?,
+      completedLessons: (json['completedLessons'] as num).toInt(),
+      totalStars: (json['totalStars'] as num).toInt(),
+      currentStreakDays: (json['currentStreakDays'] as num).toInt(),
+      timeSpentSeconds: (json['timeSpentSeconds'] as num).toInt(),
+      completionPercent: (json['completionPercent'] as num).toInt(),
+      lastLessonAt: json['lastLessonAt'] == null
+          ? null
+          : DateTime.parse(json['lastLessonAt'] as String),
+    );
+
+Map<String, dynamic> _$ParentDashboardChildItemResponseToJson(
+        ParentDashboardChildItemResponse instance) =>
+    <String, dynamic>{
+      'childId': instance.childId,
+      'childName': instance.childName,
+      'age': instance.age,
+      'avatarUrl': instance.avatarUrl,
+      'completedLessons': instance.completedLessons,
+      'totalStars': instance.totalStars,
+      'currentStreakDays': instance.currentStreakDays,
+      'timeSpentSeconds': instance.timeSpentSeconds,
+      'completionPercent': instance.completionPercent,
+      'lastLessonAt': instance.lastLessonAt?.toIso8601String(),
+    };
+
+WeeklyProgressResponse _$WeeklyProgressResponseFromJson(
+        Map<String, dynamic> json) =>
+    WeeklyProgressResponse(
+      weekStart: DateTime.parse(json['weekStart'] as String),
+      weekEnd: DateTime.parse(json['weekEnd'] as String),
+      completedLessons: (json['completedLessons'] as num).toInt(),
+      timeSpentSeconds: (json['timeSpentSeconds'] as num).toInt(),
+      activeChildrenCount: (json['activeChildrenCount'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$WeeklyProgressResponseToJson(
+        WeeklyProgressResponse instance) =>
+    <String, dynamic>{
+      'weekStart': instance.weekStart.toIso8601String(),
+      'weekEnd': instance.weekEnd.toIso8601String(),
+      'completedLessons': instance.completedLessons,
+      'timeSpentSeconds': instance.timeSpentSeconds,
+      'activeChildrenCount': instance.activeChildrenCount,
+    };
+
+ChildComparisonResponse _$ChildComparisonResponseFromJson(
+        Map<String, dynamic> json) =>
+    ChildComparisonResponse(
+      childId: json['childId'] as String,
+      childName: json['childName'] as String,
+      completedLessons: (json['completedLessons'] as num).toInt(),
+      totalStars: (json['totalStars'] as num).toInt(),
+      timeSpentSeconds: (json['timeSpentSeconds'] as num).toInt(),
+      rank: (json['rank'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$ChildComparisonResponseToJson(
+        ChildComparisonResponse instance) =>
+    <String, dynamic>{
+      'childId': instance.childId,
+      'childName': instance.childName,
+      'completedLessons': instance.completedLessons,
+      'totalStars': instance.totalStars,
+      'timeSpentSeconds': instance.timeSpentSeconds,
+      'rank': instance.rank,
+    };
+
+ParentDashboardOverviewResponse _$ParentDashboardOverviewResponseFromJson(
+        Map<String, dynamic> json) =>
+    ParentDashboardOverviewResponse(
+      parentId: json['parentId'] as String,
+      parentName: json['parentName'] as String,
+      totalChildren: (json['totalChildren'] as num).toInt(),
+      totalPublishedLessons: (json['totalPublishedLessons'] as num).toInt(),
+      totalLessonsCompleted: (json['totalLessonsCompleted'] as num).toInt(),
+      totalStars: (json['totalStars'] as num).toInt(),
+      totalTimeSpentSeconds: (json['totalTimeSpentSeconds'] as num).toInt(),
+      generatedAt: DateTime.parse(json['generatedAt'] as String),
+      children: (json['children'] as List<dynamic>)
+          .map((e) => ParentDashboardChildItemResponse.fromJson(
+              e as Map<String, dynamic>))
+          .toList(),
+      weeklyProgress: (json['weeklyProgress'] as List<dynamic>)
+          .map(
+              (e) => WeeklyProgressResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      comparisons: (json['comparisons'] as List<dynamic>)
+          .map((e) =>
+              ChildComparisonResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$ParentDashboardOverviewResponseToJson(
+        ParentDashboardOverviewResponse instance) =>
+    <String, dynamic>{
+      'parentId': instance.parentId,
+      'parentName': instance.parentName,
+      'totalChildren': instance.totalChildren,
+      'totalPublishedLessons': instance.totalPublishedLessons,
+      'totalLessonsCompleted': instance.totalLessonsCompleted,
+      'totalStars': instance.totalStars,
+      'totalTimeSpentSeconds': instance.totalTimeSpentSeconds,
+      'generatedAt': instance.generatedAt.toIso8601String(),
+      'children': instance.children.map((e) => e.toJson()).toList(),
+      'weeklyProgress': instance.weeklyProgress.map((e) => e.toJson()).toList(),
+      'comparisons': instance.comparisons.map((e) => e.toJson()).toList(),
+    };

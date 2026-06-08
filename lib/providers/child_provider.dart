@@ -77,4 +77,54 @@ class ChildProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> updateChild(String childId, String name, int age, {String? avatarUrl}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final updated = await _repository.updateChild(
+        childId: childId,
+        name: name,
+        age: age,
+        avatarUrl: avatarUrl,
+      );
+      
+      final index = _children.indexWhere((c) => c.id == childId);
+      if (index != -1) {
+        _children[index] = updated;
+      }
+      
+      if (_selectedChild?.id == childId) {
+        _selectedChild = updated;
+      }
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteChild(String childId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _repository.deleteChild(childId);
+      _children.removeWhere((c) => c.id == childId);
+      if (_selectedChild?.id == childId) {
+        _selectedChild = null;
+      }
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

@@ -41,4 +41,22 @@ class ChildApi {
       rethrow;
     }
   }
+
+  Future<Child> updateChild({
+    required String childId,
+    required String name,
+    required int age,
+    String? avatarUrl,
+  }) async {
+    try {
+      final response = await _dio.put('Child/$childId', data: {
+        'name': name,
+        'age': age,
+        'avatarUrl': avatarUrl,
+      });
+      return Child.fromJson(response.data['data']);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

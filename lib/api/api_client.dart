@@ -14,7 +14,7 @@ class ApiException implements Exception {
 class ApiClient {
   late final Dio _dio;
   // Updated to machine IP from ipconfig
-  static const String _baseUrl = 'https://192.168.88.147:7014/api/';
+  static const String _baseUrl = 'https://192.168.1.14:7014/api/';
   Future<bool> Function()? onRefreshToken;
 
   ApiClient({Dio? dio, String? authToken}) {

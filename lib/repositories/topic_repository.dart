@@ -20,7 +20,7 @@ class TopicRepository {
       });
 
       final data = response.data['data'];
-      
+
       return PagedResult<Topic>.fromJson(
         data,
         (json) => Topic.fromJson(json as Map<String, dynamic>),

@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/child_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/kidio_models.dart';
+import 'parent_dashboard_screen.dart';
 
 class ChildSelectionScreen extends StatefulWidget {
   const ChildSelectionScreen({super.key});
@@ -30,6 +31,12 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: TextButton.icon(
+          onPressed: () => _showParentVerification(context),
+          icon: const Icon(Icons.security, color: Colors.indigoAccent),
+          label: const Text('Phụ huynh', style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold)),
+        ),
+        leadingWidth: 140,
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.redAccent, size: 28),
@@ -300,6 +307,78 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Colors.blueAccent, width: 2)),
       filled: true,
       fillColor: Colors.grey.shade50,
+    );
+  }
+
+  void _showParentVerification(BuildContext context) {
+    // Generate a random math equation
+    final num1 = (10 + (20 - 10) * (DateTime.now().millisecond / 1000)).floor();
+    final num2 = (2 + (9 - 2) * (DateTime.now().microsecond / 1000000)).floor();
+    final result = num1 * num2;
+    
+    final answerController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock, color: Colors.indigoAccent),
+            SizedBox(width: 8),
+            Text('Khu vực Phụ huynh', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Vui lòng giải phép tính dưới đây để xác nhận bạn là phụ huynh:'),
+            const SizedBox(height: 16),
+            Center(
+              child: Text(
+                '$num1 x $num2 = ?',
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.indigo),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: answerController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: 'Nhập câu trả lời',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigoAccent, foregroundColor: Colors.white),
+            onPressed: () {
+              final val = int.tryParse(answerController.text.trim());
+              if (val == result) {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ParentDashboardScreen()),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Xác nhận thất bại. Câu trả lời không đúng.')),
+                );
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
     );
   }
 

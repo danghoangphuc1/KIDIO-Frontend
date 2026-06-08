@@ -278,3 +278,112 @@ class PagedResult<T> {
   ) =>
       _$PagedResultFromJson(json, fromJsonT);
 }
+
+@JsonSerializable()
+class ParentDashboardChildItemResponse {
+  final String childId;
+  final String childName;
+  final int age;
+  final String? avatarUrl;
+  final int completedLessons;
+  final int totalStars;
+  final int currentStreakDays;
+  final int timeSpentSeconds;
+  final int completionPercent;
+  final DateTime? lastLessonAt;
+
+  ParentDashboardChildItemResponse({
+    required this.childId,
+    required this.childName,
+    required this.age,
+    this.avatarUrl,
+    required this.completedLessons,
+    required this.totalStars,
+    required this.currentStreakDays,
+    required this.timeSpentSeconds,
+    required this.completionPercent,
+    this.lastLessonAt,
+  });
+
+  factory ParentDashboardChildItemResponse.fromJson(Map<String, dynamic> json) =>
+      _$ParentDashboardChildItemResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$ParentDashboardChildItemResponseToJson(this);
+}
+
+@JsonSerializable()
+class WeeklyProgressResponse {
+  final DateTime weekStart;
+  final DateTime weekEnd;
+  final int completedLessons;
+  final int timeSpentSeconds;
+  final int activeChildrenCount;
+
+  WeeklyProgressResponse({
+    required this.weekStart,
+    required this.weekEnd,
+    required this.completedLessons,
+    required this.timeSpentSeconds,
+    required this.activeChildrenCount,
+  });
+
+  factory WeeklyProgressResponse.fromJson(Map<String, dynamic> json) =>
+      _$WeeklyProgressResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$WeeklyProgressResponseToJson(this);
+}
+
+@JsonSerializable()
+class ChildComparisonResponse {
+  final String childId;
+  final String childName;
+  final int completedLessons;
+  final int totalStars;
+  final int timeSpentSeconds;
+  final int rank;
+
+  ChildComparisonResponse({
+    required this.childId,
+    required this.childName,
+    required this.completedLessons,
+    required this.totalStars,
+    required this.timeSpentSeconds,
+    required this.rank,
+  });
+
+  factory ChildComparisonResponse.fromJson(Map<String, dynamic> json) =>
+      _$ChildComparisonResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$ChildComparisonResponseToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class ParentDashboardOverviewResponse {
+  final String parentId;
+  final String parentName;
+  final int totalChildren;
+  final int totalPublishedLessons;
+  final int totalLessonsCompleted;
+  final int totalStars;
+  final int totalTimeSpentSeconds;
+  final DateTime generatedAt;
+  final List<ParentDashboardChildItemResponse> children;
+  final List<WeeklyProgressResponse> weeklyProgress;
+  final List<ChildComparisonResponse> comparisons;
+
+  ParentDashboardOverviewResponse({
+    required this.parentId,
+    required this.parentName,
+    required this.totalChildren,
+    required this.totalPublishedLessons,
+    required this.totalLessonsCompleted,
+    required this.totalStars,
+    required this.totalTimeSpentSeconds,
+    required this.generatedAt,
+    required this.children,
+    required this.weeklyProgress,
+    required this.comparisons,
+  });
+
+  factory ParentDashboardOverviewResponse.fromJson(Map<String, dynamic> json) =>
+      _$ParentDashboardOverviewResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$ParentDashboardOverviewResponseToJson(this);
+}
+

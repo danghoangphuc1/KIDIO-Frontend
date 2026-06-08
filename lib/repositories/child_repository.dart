@@ -12,4 +12,12 @@ class ChildRepository {
       _childApi.createChild(name: name, age: age, avatarUrl: avatarUrl);
 
   Future<void> deleteChild(String childId) => _childApi.deleteChild(childId);
+
+  Future<Child> updateChild({
+    required String childId,
+    required String name,
+    required int age,
+    String? avatarUrl,
+  }) =>
+      _childApi.updateChild(childId: childId, name: name, age: age, avatarUrl: avatarUrl);
 }
