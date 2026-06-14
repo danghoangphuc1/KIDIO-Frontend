@@ -9,12 +9,31 @@ class PronunciationProvider extends ChangeNotifier {
   PronunciationProvider(this._repository);
 
   PronunciationScore? _lastScore;
+  List<PronunciationScore> _history = [];
   bool _isScoring = false;
+  bool _isLoadingHistory = false;
   String? _errorMessage;
 
   PronunciationScore? get lastScore => _lastScore;
+  List<PronunciationScore> get history => _history;
   bool get isScoring => _isScoring;
+  bool get isLoadingHistory => _isLoadingHistory;
   String? get errorMessage => _errorMessage;
+
+  Future<void> loadVocabularyHistory(String vocabularyId) async {
+    _isLoadingHistory = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _history = await _repository.getVocabularyHistory(vocabularyId);
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoadingHistory = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> submitPronunciation({
     required String vocabularyId,
@@ -32,6 +51,8 @@ class PronunciationProvider extends ChangeNotifier {
         audioFile: audioFile,
         lessonId: lessonId,
       );
+      // Reload history after submit
+      await loadVocabularyHistory(vocabularyId);
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

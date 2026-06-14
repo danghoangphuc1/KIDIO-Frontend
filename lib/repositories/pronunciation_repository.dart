@@ -19,4 +19,7 @@ class PronunciationRepository {
 
   Future<List<PronunciationScore>> getChildHistory({int page = 1, int pageSize = 10}) =>
       _api.getChildHistory(page: page, pageSize: pageSize);
+
+  Future<List<PronunciationScore>> getVocabularyHistory(String vocabularyId) =>
+      _api.getVocabularyHistory(vocabularyId);
 }

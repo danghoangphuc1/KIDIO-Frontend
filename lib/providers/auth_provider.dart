@@ -108,6 +108,79 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> forgotPassword(String email) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.forgotPassword(email);
+      if (response.success) {
+        return true;
+      } else {
+        _errorMessage = response.message ?? 'Yêu cầu thất bại';
+        return false;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String token,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.resetPassword(
+        token: token,
+        newPassword: newPassword,
+        confirmNewPassword: confirmNewPassword,
+      );
+      if (response.success) {
+        return true;
+      } else {
+        _errorMessage = response.message ?? 'Đặt lại mật khẩu thất bại';
+        return false;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+        confirmNewPassword: confirmNewPassword,
+      );
+      if (response.success) {
+        return true;
+      } else {
+        _errorMessage = response.message ?? 'Thay đổi mật khẩu thất bại';
+        return false;
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     _isAuthenticated = false;

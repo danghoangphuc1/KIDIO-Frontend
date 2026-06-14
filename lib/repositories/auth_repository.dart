@@ -46,6 +46,30 @@ class AuthRepository {
 
   Future<LoginResponse> resendVerification(String email) => _authApi.resendVerification(email);
 
+  Future<LoginResponse> forgotPassword(String email) => _authApi.forgotPassword(email);
+
+  Future<LoginResponse> resetPassword({
+    required String token,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) =>
+      _authApi.resetPassword(
+        token: token,
+        newPassword: newPassword,
+        confirmNewPassword: confirmNewPassword,
+      );
+
+  Future<LoginResponse> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) =>
+      _authApi.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+        confirmNewPassword: confirmNewPassword,
+      );
+
   Future<void> logout() async {
     await _storage.delete(key: 'accessToken');
     await _storage.delete(key: 'refreshToken');

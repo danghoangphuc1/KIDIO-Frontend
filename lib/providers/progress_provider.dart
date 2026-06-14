@@ -11,12 +11,14 @@ class ProgressProvider extends ChangeNotifier {
 
   List<LessonProgress> _recentActivities = [];
   List<Achievement> _achievements = [];
+  List<LessonProgress> _completedLessons = [];
   ChildProgressSummary? _summary;
   bool _isLoading = false;
   String? _errorMessage;
 
   List<LessonProgress> get recentActivities => _recentActivities;
   List<Achievement> get achievements => _achievements;
+  List<LessonProgress> get completedLessons => _completedLessons;
   ChildProgressSummary? get summary => _summary;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -31,11 +33,13 @@ class ProgressProvider extends ChangeNotifier {
         _progressRepository.getRecentActivities(childId),
         _achievementRepository.getByChild(childId),
         _progressRepository.getChildSummary(childId),
+        _progressRepository.getCompletedLessons(childId),
       ]);
       
       _recentActivities = results[0] as List<LessonProgress>;
       _achievements = results[1] as List<Achievement>;
       _summary = results[2] as ChildProgressSummary;
+      _completedLessons = results[3] as List<LessonProgress>;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

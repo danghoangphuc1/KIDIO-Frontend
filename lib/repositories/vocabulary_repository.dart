@@ -8,4 +8,7 @@ class VocabularyRepository {
 
   Future<List<Vocabulary>> getByLesson(String lessonId) => _api.getByLesson(lessonId);
   Future<Vocabulary> getById(String vocabId) => _api.getById(vocabId);
+
+  Future<List<Vocabulary>> search(String keyword, {String? lessonId}) =>
+      _api.search(keyword, lessonId: lessonId);
 }

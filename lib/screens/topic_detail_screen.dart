@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/kidio_models.dart';
 import '../repositories/topic_repository.dart';
+import '../providers/child_provider.dart';
+import '../providers/progress_provider.dart';
 import '../local/cache_service.dart';
 import 'lesson_detail_screen.dart';
 
@@ -44,18 +46,21 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final progressProvider = context.watch<ProgressProvider>();
+    final childId = context.read<ChildProvider>().selectedChild?.id;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBFF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.blueAccent),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.blueAccent),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.topicName,
-          style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.w900),
         ),
       ),
       body: FutureBuilder<List<Lesson>>(
@@ -66,32 +71,12 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.sentiment_dissatisfied, size: 64, color: Colors.blueGrey),
-                    const SizedBox(height: 16),
-                    const Text('Could not load lessons.', style: TextStyle(fontSize: 18)),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () => setState(() { _lessonsFuture = _fetchLessons(); }),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                      child: const Text('Try Again', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return Center(child: Text('Lỗi tải bài học'));
           }
 
           final lessons = snapshot.data ?? [];
           if (lessons.isEmpty) {
-            return const Center(
-              child: Text('Coming soon! No lessons here yet.', style: TextStyle(fontSize: 18, color: Colors.grey)),
-            );
+            return const Center(child: Text('Chủ đề này chưa có bài học nào.'));
           }
 
           return ListView.builder(
@@ -99,8 +84,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
             itemCount: lessons.length,
             itemBuilder: (context, index) {
               final lesson = lessons[index];
-              final List<Color> accentColors = [Colors.blue, Colors.orange, Colors.green, Colors.purple];
-              final color = accentColors[index % accentColors.length];
+              
+              // Kiểm tra xem bài học này đã xong chưa từ API Progress
+              final isDone = progressProvider.completedLessons.any((p) => p.lessonId == lesson.id);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -108,12 +94,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
+                    BoxShadow(color: (isDone ? Colors.green : Colors.blue).withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
                   ],
+                  border: isDone ? Border.all(color: Colors.green.withOpacity(0.2), width: 1) : null,
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -121,36 +104,36 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: (isDone ? Colors.green : Colors.blue).withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                      child: Text(
-                        '${lesson.orderIndex}',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: color),
-                      ),
+                      child: isDone 
+                        ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 28)
+                        : Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.blueAccent)),
                     ),
                   ),
                   title: Text(
                     lesson.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1A237E)),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      lesson.description ?? 'Tap to start learning',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800, 
+                      fontSize: 17, 
+                      color: const Color(0xFF1A237E),
+                      decoration: isDone ? TextDecoration.none : null,
                     ),
                   ),
-                  trailing: Icon(Icons.play_circle_fill, size: 36, color: color),
-                  onTap: () {
-                    Navigator.push(
+                  subtitle: Text(
+                    isDone ? 'Đã hoàn thành xuất sắc! ✨' : (lesson.description ?? 'Nhấn để bắt đầu học'),
+                    style: TextStyle(color: isDone ? Colors.green : Colors.blueGrey, fontWeight: isDone ? FontWeight.bold : FontWeight.normal),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: Colors.grey),
+                  onTap: () async {
+                    await Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => LessonDetailScreen(lessonId: lesson.id),
-                      ),
+                      MaterialPageRoute(builder: (context) => LessonDetailScreen(lessonId: lesson.id)),
                     );
+                    // Refresh progress when coming back
+                    if (childId != null) progressProvider.loadChildProgress(childId);
                   },
                 ),
               );

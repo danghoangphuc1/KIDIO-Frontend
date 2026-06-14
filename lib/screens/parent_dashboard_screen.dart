@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/child_provider.dart';
+import '../providers/progress_provider.dart';
 import '../models/kidio_models.dart';
+import 'change_password_screen.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
   const ParentDashboardScreen({super.key});
@@ -18,11 +20,20 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this); // Tăng lên 4 tab
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardProvider>().loadOverview();
-      context.read<ChildProvider>().loadChildren();
+      _reloadData();
     });
+  }
+
+  void _reloadData() {
+    context.read<DashboardProvider>().loadOverview();
+    context.read<ChildProvider>().loadChildren();
+    // Lấy hoạt động cho tất cả các bé hoặc bé đầu tiên để khởi tạo
+    final children = context.read<ChildProvider>().children;
+    if (children.isNotEmpty) {
+      context.read<ProgressProvider>().loadChildProgress(children.first.id);
+    }
   }
 
   @override
@@ -51,20 +62,20 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.blueAccent),
-            onPressed: () {
-              dashboardProvider.loadOverview();
-              context.read<ChildProvider>().loadChildren();
-            },
+            onPressed: _reloadData,
           )
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           labelColor: Colors.blueAccent,
           unselectedLabelColor: Colors.grey,
           indicatorColor: Colors.blueAccent,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           tabs: const [
             Tab(text: 'Tổng Quan', icon: Icon(Icons.dashboard_outlined)),
+            Tab(text: 'Nhật Ký Học', icon: Icon(Icons.history_edu_rounded)), // Tab mới kết nối API Progress
             Tab(text: 'Quản Lý Trẻ', icon: Icon(Icons.people_outline)),
             Tab(text: 'Xếp Hạng', icon: Icon(Icons.analytics_outlined)),
           ],
@@ -72,40 +83,51 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
       ),
       body: dashboardProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : dashboardProvider.errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Lỗi tải dữ liệu: ${dashboardProvider.errorMessage}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            dashboardProvider.loadOverview();
-                            context.read<ChildProvider>().loadChildren();
-                          },
-                          child: const Text('Thử lại'),
-                        )
-                      ],
-                    ),
-                  ),
-                )
-              : TabBarView(
+          : TabBarView(
                   controller: _tabController,
                   children: [
                     _buildOverviewTab(context, dashboardProvider.overview),
+                    _buildActivityLogTab(context), // Tab mới
                     _buildChildrenTab(context),
                     _buildComparisonTab(context, dashboardProvider.overview),
                   ],
                 ),
+    );
+  }
+
+  // --- TAB: NHẬT KÝ HỌC TẬP (Kết nối API GetRecentActivities) ---
+  Widget _buildActivityLogTab(BuildContext context) {
+    final progressProvider = context.watch<ProgressProvider>();
+    final activities = progressProvider.recentActivities;
+
+    if (activities.isEmpty) {
+      return const Center(child: Text('Chưa có hoạt động học tập nào gần đây.'));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: activities.length,
+      itemBuilder: (context, index) {
+        final activity = activities[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.book, color: Colors.white),
+            ),
+            title: Text('Hoàn thành bài học', style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('Đạt ${activity.scorePercent}% - Nhận ${activity.starsEarned} ⭐'),
+            trailing: Text(
+              activity.completedAt != null 
+                ? '${activity.completedAt!.day}/${activity.completedAt!.month}' 
+                : '',
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -130,13 +152,36 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           Text(
             'Xin chào phụ huynh, ${overview.parentName}!',
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
             'Cập nhật lúc: ${overview.generatedAt.toLocal().toString().split('.')[0]}',
             style: const TextStyle(fontSize: 13, color: Colors.grey),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+                );
+              },
+              icon: const Icon(Icons.lock_open, size: 20),
+              label: const Text('THAY ĐỔI MẬT KHẨU', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.indigo,
+                side: const BorderSide(color: Colors.indigoAccent, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
 
           // Cards Grid
           GridView.count(
@@ -160,9 +205,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
             children: [
               Icon(Icons.calendar_month, color: Colors.indigo),
               SizedBox(width: 8),
-              Text(
-                'Hoạt động học tập hàng tuần',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+              Expanded(
+                child: Text(
+                  'Hoạt động học tập hàng tuần',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -210,6 +258,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                                   Text(
                                     'Đã học: ${week.completedLessons} bài | Thời gian: ${formatDuration(week.timeSpentSeconds)}',
                                     style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -250,7 +300,13 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               Icon(icon, color: color, size: 24),
             ],
           ),
@@ -301,15 +357,26 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                       const SizedBox(height: 4),
                       Text('${child.age} tuổi', style: TextStyle(color: Colors.grey.shade600)),
                       const SizedBox(height: 8),
-                      Row(
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 4,
                         children: [
-                          Icon(Icons.star, color: Colors.amber, size: 16),
-                          const SizedBox(width: 4),
-                          Text('${child.totalStars} Sao'),
-                          const SizedBox(width: 12),
-                          Icon(Icons.local_fire_department, color: Colors.redAccent, size: 16),
-                          const SizedBox(width: 4),
-                          Text('${child.currentStreakDays} Ngày'),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star, color: Colors.amber, size: 16),
+                              const SizedBox(width: 4),
+                              Text('${child.totalStars} Sao'),
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.local_fire_department, color: Colors.redAccent, size: 16),
+                              const SizedBox(width: 4),
+                              Text('${child.currentStreakDays} Ngày'),
+                            ],
+                          ),
                         ],
                       )
                     ],
@@ -513,73 +580,82 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
             children: [
               Icon(Icons.emoji_events, color: Colors.amber, size: 28),
               SizedBox(width: 8),
-              Text(
-                'Bảng thành tích học tập các bé',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+              Expanded(
+                child: Text(
+                  'Bảng thành tích học tập các bé',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Table(
-            columnWidths: const {
-              0: FlexColumnWidth(1.2), // Rank
-              1: FlexColumnWidth(3),   // Name
-              2: FlexColumnWidth(2),   // Lessons Completed
-              3: FlexColumnWidth(1.8), // Stars
-              4: FlexColumnWidth(2),   // Time Spent
-            },
-            border: TableBorder(
-              horizontalInside: BorderSide(color: Colors.grey.shade200, width: 1),
-            ),
-            children: [
-              // Header
-              TableRow(
-                decoration: BoxDecoration(color: Colors.blue.shade50),
-                children: const [
-                  Padding(padding: EdgeInsets.all(12), child: Text('Hạng', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                  Padding(padding: EdgeInsets.all(12), child: Text('Tên Bé', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                  Padding(padding: EdgeInsets.all(12), child: Text('Đã học', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                  Padding(padding: EdgeInsets.all(12), child: Text('Sao ⭐', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                  Padding(padding: EdgeInsets.all(12), child: Text('Thời gian', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32),
+              child: Table(
+                columnWidths: const {
+                  0: FlexColumnWidth(1.2), // Rank
+                  1: FlexColumnWidth(3),   // Name
+                  2: FlexColumnWidth(2),   // Lessons Completed
+                  3: FlexColumnWidth(1.8), // Stars
+                  4: FlexColumnWidth(2),   // Time Spent
+                },
+                border: TableBorder(
+                  horizontalInside: BorderSide(color: Colors.grey.shade200, width: 1),
+                ),
+                children: [
+                  // Header
+                  TableRow(
+                    decoration: BoxDecoration(color: Colors.blue.shade50),
+                    children: const [
+                      Padding(padding: EdgeInsets.all(12), child: Text('Hạng', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
+                      Padding(padding: EdgeInsets.all(12), child: Text('Tên Bé', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
+                      Padding(padding: EdgeInsets.all(12), child: Text('Đã học', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
+                      Padding(padding: EdgeInsets.all(12), child: Text('Sao ⭐', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
+                      Padding(padding: EdgeInsets.all(12), child: Text('Thời gian', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
+                    ],
+                  ),
+                  // Body
+                  ...overview.comparisons.map((c) {
+                    final isTop1 = c.rank == 1;
+                    return TableRow(
+                      decoration: const BoxDecoration(color: Colors.white),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              if (isTop1)
+                                const Icon(Icons.workspace_premium, color: Colors.amber, size: 18)
+                              else
+                                Text('${c.rank}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(c.childName, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text('${c.completedLessons} bài'),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text('${c.totalStars}'),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(formatDuration(c.timeSpentSeconds)),
+                        ),
+                      ],
+                    );
+                  }),
                 ],
               ),
-              // Body
-              ...overview.comparisons.map((c) {
-                final isTop1 = c.rank == 1;
-                return TableRow(
-                  decoration: const BoxDecoration(color: Colors.white),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          if (isTop1)
-                            const Icon(Icons.workspace_premium, color: Colors.amber, size: 18)
-                          else
-                            Text('${c.rank}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(c.childName, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text('${c.completedLessons} bài'),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text('${c.totalStars}'),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(formatDuration(c.timeSpentSeconds)),
-                    ),
-                  ],
-                );
-              }),
-            ],
+            ),
           ),
         ],
       ),

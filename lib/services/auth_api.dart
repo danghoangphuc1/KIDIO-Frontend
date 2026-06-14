@@ -115,6 +115,66 @@ class AuthApi {
     }
   }
 
+  Future<LoginResponse> forgotPassword(String email) async {
+    try {
+      final response = await _dio.post('Auth/forgot-password', data: {
+        'email': email,
+      });
+      return LoginResponse(
+        success: response.data['success'] ?? false,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return LoginResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<LoginResponse> resetPassword({
+    required String token,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    try {
+      final response = await _dio.post('Auth/reset-password', data: {
+        'token': token,
+        'newPassword': newPassword,
+        'confirmNewPassword': confirmNewPassword,
+      });
+      return LoginResponse(
+        success: response.data['success'] ?? false,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return LoginResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<LoginResponse> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    try {
+      final response = await _dio.post('Auth/change-password', data: {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+        'confirmNewPassword': confirmNewPassword,
+      });
+      return LoginResponse(
+        success: response.data['success'] ?? false,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return LoginResponse(success: false, message: e.toString());
+    }
+  }
+
   LoginResponse _handleDioError(DioException e) {
     if (e.error is ApiException) {
       return LoginResponse(success: false, message: (e.error as ApiException).message);

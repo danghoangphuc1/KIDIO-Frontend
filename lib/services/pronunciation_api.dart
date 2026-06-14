@@ -44,4 +44,19 @@ class PronunciationApi {
       rethrow;
     }
   }
+
+  Future<List<PronunciationScore>> getVocabularyHistory(String vocabularyId) async {
+    try {
+      final response = await _dio.get('Pronunciation/vocabulary/$vocabularyId');
+      final data = response.data['data'];
+      if (data != null && data['items'] is List) {
+        return (data['items'] as List)
+            .map((json) => PronunciationScore.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
