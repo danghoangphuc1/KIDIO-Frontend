@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/kidio_models.dart';
-import '../repositories/topic_repository.dart';
 import '../repositories/lesson_repository.dart';
 import '../repositories/tts_repository.dart';
 import '../providers/child_provider.dart';
@@ -13,6 +11,8 @@ import '../providers/pronunciation_provider.dart';
 import '../utils/content_parser.dart';
 import '../local/cache_service.dart';
 import '../api/api_client.dart';
+import '../repositories/vocabulary_repository.dart';
+import 'vocabulary_quiz_screen.dart';
 
 class LessonDetailScreen extends StatefulWidget {
   final String lessonId;
@@ -27,6 +27,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   final CacheService _cacheService = CacheService();
   final AudioPlayer _audioPlayer = AudioPlayer();
   late Future<Lesson> _lessonFuture;
+  List<Vocabulary> _vocabularies = [];
   bool _isSubmitting = false;
   bool _isPlaying = false;
   bool _isSynthesizingLesson = false;
@@ -57,6 +58,16 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     try {
       final lesson = await lessonRepo.getLessonById(widget.lessonId);
       await _cacheService.saveLesson(lesson);
+      
+      if (!mounted) return lesson;
+      
+      try {
+        final vocabRepo = context.read<VocabularyRepository>();
+        final vocabs = await vocabRepo.getByLesson(widget.lessonId);
+        if (mounted) setState(() => _vocabularies = vocabs);
+      } catch (e) {
+        debugPrint("Error fetching vocabularies: $e");
+      }
 
       if (childId != null) {
         final progress = await progressProvider.checkLessonCompletion(childId, widget.lessonId);
@@ -71,28 +82,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     }
   }
 
-  Future<void> _readAloud(String text) async {
-    if (_isPlaying) {
-      await _audioPlayer.stop();
-      return;
-    }
-    try {
-      final ttsRepo = context.read<TtsRepository>();
-      
-      final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
-      final response = await ttsRepo.synthesize(text);
-      
-      // Chuyển đổi sang HTTP nếu là IP local để tránh lỗi SSL trên MediaPlayer của Android
-      String fullUrl = response.audioUrl.startsWith('http') ? response.audioUrl : '${dioBaseUrl.replaceAll('/api/', '')}${response.audioUrl}';
-      if (fullUrl.contains('192.168.') || fullUrl.contains('10.')) {
-        fullUrl = fullUrl.replaceFirst('https://', 'http://').replaceFirst(':7014', ':5109');
-      }
-          
-      await _audioPlayer.play(UrlSource(fullUrl));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi âm thanh: $e')));
-    }
-  }
+
 
   Future<void> _readWholeLesson() async {
     if (_isPlaying) {
@@ -125,15 +115,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     }
   }
 
-  void _showPronunciationDialog(Vocabulary vocab) {
-    showDialog(
-      context: context,
-      builder: (context) => PronunciationPracticeDialog(
-        vocab: vocab,
-        lessonId: widget.lessonId,
-      ),
-    );
-  }
+
 
   Future<void> _finishLesson() async {
     if (_isCompleted) {
@@ -310,56 +292,63 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
 
                 const SizedBox(height: 32),
 
-                // Vocabulary Section
-                if (lesson.vocabularies != null && lesson.vocabularies!.isNotEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(children: [Icon(Icons.star_rounded, color: Colors.purpleAccent, size: 22), SizedBox(width: 8), Text('TỪ VỰNG QUAN TRỌNG', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.blueGrey))]),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 240,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: lesson.vocabularies!.length,
-                      itemBuilder: (context, index) {
-                        final vocab = lesson.vocabularies![index];
-                        final List<Color> colors = [Colors.green, Colors.orange, Colors.purple, Colors.blue, Colors.pink];
-                        final color = colors[index % colors.length];
-                        
-                        return Container(
-                          width: 200,
-                          margin: const EdgeInsets.only(right: 16, bottom: 10, left: 4),
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(32),
-                            boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
-                            border: Border.all(color: color.withOpacity(0.2), width: 2),
+                const SizedBox(height: 32),
+
+                // Vocabulary Quiz Button Section
+                if (_vocabularies.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(children: [Icon(Icons.star_rounded, color: Colors.purpleAccent, size: 22), SizedBox(width: 8), Text('TỪ VỰNG QUAN TRỌNG', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.blueGrey))]),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 80,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => VocabularyQuizScreen(
+                                    vocabularies: _vocabularies,
+                                    lessonId: widget.lessonId,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple.shade50,
+                              foregroundColor: Colors.purple,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                side: BorderSide(color: Colors.purple.shade200, width: 2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
+                                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                                ),
+                                const SizedBox(width: 16),
+                                const Expanded(
+                                  child: Text(
+                                    'Bắt đầu Trắc nghiệm Từ vựng!',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(vocab.word, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
-                              if (vocab.phoneticText != null)
-                                Text(vocab.phoneticText!, style: const TextStyle(fontSize: 14, color: Colors.blueGrey, fontStyle: FontStyle.italic)),
-                              const SizedBox(height: 10),
-                              const Divider(),
-                              const SizedBox(height: 10),
-                              Expanded(child: Center(child: Text(vocab.meaning, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)))),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _buildVocabAction(Icons.volume_up_rounded, color, () => _readAloud(vocab.word)),
-                                  _buildVocabAction(Icons.mic_rounded, Colors.redAccent, () => _showPronunciationDialog(vocab)),
-                                ],
-                              )
-                            ],
-                          ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -393,161 +382,4 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     );
   }
 
-  Widget _buildVocabAction(IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-        child: Icon(icon, color: color, size: 24),
-      ),
-    );
-  }
-}
-
-class PronunciationPracticeDialog extends StatefulWidget {
-  final Vocabulary vocab;
-  final String lessonId;
-
-  const PronunciationPracticeDialog({super.key, required this.vocab, required this.lessonId});
-
-  @override
-  State<PronunciationPracticeDialog> createState() => _PronunciationPracticeDialogState();
-}
-
-class _PronunciationPracticeDialogState extends State<PronunciationPracticeDialog> {
-  bool _isRecording = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PronunciationProvider>().loadVocabularyHistory(widget.vocab.id);
-    });
-  }
-  
-  void _toggleRecording() async {
-    if (!_isRecording) {
-      setState(() => _isRecording = true);
-      // Mockup recording for 2 seconds
-      await Future.delayed(const Duration(seconds: 2));
-      _finishRecording();
-    }
-  }
-
-  Future<void> _finishRecording() async {
-    setState(() => _isRecording = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Chức năng ghi âm thật đang được chuẩn bị. Kết nối AI BE đã sẵn sàng!')),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<PronunciationProvider>();
-
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-      title: const Center(child: Text('Tập nói cùng AI', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1A237E)))),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(widget.vocab.word, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.blueAccent)),
-          const SizedBox(height: 20),
-          if (provider.isScoring)
-            const CircularProgressIndicator()
-          else if (provider.lastScore != null)
-            _buildScoreView(provider.lastScore!)
-          else
-            const Text('Nhấn mic và đọc to từ trên nhé!', style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold)),
-          
-          const SizedBox(height: 30),
-          
-          // Record Button
-          GestureDetector(
-            onTap: _toggleRecording,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _isRecording ? Colors.red : Colors.blueAccent,
-                boxShadow: [BoxShadow(color: (_isRecording ? Colors.red : Colors.blueAccent).withOpacity(0.3), blurRadius: 20, spreadRadius: 5)],
-              ),
-              child: Icon(_isRecording ? Icons.stop_rounded : Icons.mic_rounded, size: 48, color: Colors.white),
-            ),
-          ),
-          
-          const SizedBox(height: 32),
-          const Divider(),
-          const SizedBox(height: 16),
-          const Text('LỊCH SỬ LUYỆN TẬP', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.blueGrey, letterSpacing: 1)),
-          const SizedBox(height: 16),
-          
-          // History List
-          SizedBox(
-            height: 80,
-            child: provider.isLoadingHistory 
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-              : provider.history.isEmpty
-                ? const Center(child: Text('Chưa có lịch sử', style: TextStyle(fontSize: 13, color: Colors.grey)))
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: provider.history.length,
-                    itemBuilder: (context, index) {
-                      final h = provider.history[index];
-                      final isGood = h.overallScore >= 80;
-                      return Container(
-                        width: 70,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          color: isGood ? Colors.green.shade50 : Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: isGood ? Colors.green.shade200 : Colors.orange.shade200),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('${h.overallScore}', style: TextStyle(fontWeight: FontWeight.w900, color: isGood ? Colors.green : Colors.orange, fontSize: 18)),
-                            const SizedBox(height: 4),
-                            Icon(isGood ? Icons.check_circle_rounded : Icons.stars_rounded, size: 18, color: isGood ? Colors.green : Colors.orange),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-      actions: [
-        Center(
-          child: TextButton(
-            onPressed: () {
-              provider.clearLastScore();
-              Navigator.pop(context);
-            },
-            child: const Text('ĐÓNG', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScoreView(PronunciationScore score) {
-    return Column(
-      children: [
-        Text('Điểm số: ${score.overallScore}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.indigo)),
-        const SizedBox(height: 4),
-        Text(score.feedback, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.blueGrey)),
-        const SizedBox(height: 12),
-        Icon(
-          score.isPassed ? Icons.check_circle_rounded : Icons.stars_rounded,
-          color: score.isPassed ? Colors.green : Colors.orange,
-          size: 60,
-        ),
-      ],
-    );
-  }
 }
