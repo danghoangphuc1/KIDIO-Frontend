@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/kidio_models.dart';
-import '../repositories/topic_repository.dart';
+import '../repositories/lesson_repository.dart';
 import '../providers/child_provider.dart';
 import '../providers/progress_provider.dart';
 import '../local/cache_service.dart';
@@ -32,9 +32,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
   }
 
   Future<List<Lesson>> _fetchLessons() async {
-    final repository = context.read<TopicRepository>();
+    final repository = context.read<LessonRepository>();
     try {
-      final lessons = await repository.fetchLessonsByTopicId(widget.topicId);
+      final lessons = await repository.getLessonsByTopic(widget.topicId);
       await _cacheService.saveLessonsForTopic(widget.topicId, lessons);
       return lessons;
     } catch (e) {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'api/api_client.dart';
 import 'repositories/topic_repository.dart';
+import 'repositories/lesson_repository.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/child_repository.dart';
 import 'repositories/progress_repository.dart';
@@ -11,6 +12,8 @@ import 'repositories/achievement_repository.dart';
 import 'repositories/pronunciation_repository.dart';
 import 'repositories/tts_repository.dart';
 import 'services/auth_api.dart';
+import 'services/topic_api.dart';
+import 'services/lesson_api.dart';
 import 'services/child_api.dart';
 import 'services/progress_api.dart';
 import 'services/vocabulary_api.dart';
@@ -28,6 +31,7 @@ import 'providers/pronunciation_provider.dart';
 import 'screens/topics_list_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/child_selection_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +43,8 @@ void main() async {
   
   // API Services
   final authApi = AuthApi(apiClient.dio);
+  final topicApi = TopicApi(apiClient.dio);
+  final lessonApi = LessonApi(apiClient.dio);
   final childApi = ChildApi(apiClient.dio);
   final progressApi = ProgressApi(apiClient.dio);
   final vocabApi = VocabularyApi(apiClient.dio);
@@ -49,7 +55,8 @@ void main() async {
   
   // Repositories
   final authRepository = AuthRepository(authApi, apiClient);
-  final topicRepository = TopicRepository(apiClient);
+  final topicRepository = TopicRepository(topicApi);
+  final lessonRepository = LessonRepository(lessonApi);
   final childRepository = ChildRepository(childApi);
   final progressRepository = ProgressRepository(progressApi);
   final vocabRepository = VocabularyRepository(vocabApi);
@@ -63,7 +70,9 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        Provider.value(value: apiClient),
         Provider.value(value: topicRepository),
+        Provider.value(value: lessonRepository),
         Provider.value(value: authRepository),
         Provider.value(value: childRepository),
         Provider.value(value: progressRepository),
@@ -127,7 +136,12 @@ class AuthWrapper extends StatelessWidget {
       return const LoginScreen();
     }
 
-    // 2. Nếu đã đăng nhập, kiểm tra xem đã chọn đứa trẻ nào chưa
+    // 2. Nếu là Admin -> Vào màn hình Admin Dashboard
+    if (authProvider.isAdmin) {
+      return const AdminDashboardScreen();
+    }
+
+    // 3. Nếu là Phụ huynh/Bé, kiểm tra xem đã chọn đứa trẻ nào chưa
     if (childProvider.selectedChild == null) {
       return const ChildSelectionScreen();
     }

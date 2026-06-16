@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/child_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/kidio_models.dart';
-import 'parent_dashboard_screen.dart';
+import '../widgets/parent_pin_dialogs.dart';
 
 class ChildSelectionScreen extends StatefulWidget {
   const ChildSelectionScreen({super.key});
@@ -17,8 +17,16 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<ChildProvider>().loadChildren();
+      
+      // Kiểm tra xem đã có mã PIN phụ huynh chưa
+      final authProvider = context.read<AuthProvider>();
+      final hasPin = await authProvider.hasParentPin();
+      if (!hasPin && mounted) {
+        // Nếu chưa có, yêu cầu tạo mới
+        ParentPinDialogs.showCreatePinDialog(context);
+      }
     });
   }
 
@@ -472,105 +480,17 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
     );
   }
 
-  void _showParentVerification(BuildContext context) {
-    final num1 = (10 + (20 - 10) * (DateTime.now().millisecond / 1000)).floor();
-    final num2 = (2 + (9 - 2) * (DateTime.now().microsecond / 1000000)).floor();
-    final result = num1 * num2;
+  Future<void> _showParentVerification(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    final hasPin = await authProvider.hasParentPin();
     
-    final answerController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.indigo.shade50, shape: BoxShape.circle),
-              child: const Icon(Icons.lock_rounded, color: Colors.indigoAccent, size: 24),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Khu vực Phụ huynh',
-                style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1A237E)),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Để đảm bảo an toàn, vui lòng giải phép tính này:',
-              style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.indigo.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '$num1 x $num2 = ?',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.indigo),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: answerController,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              decoration: InputDecoration(
-                hintText: 'Nhập kết quả',
-                hintStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('HỦY', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigoAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            onPressed: () {
-              final val = int.tryParse(answerController.text.trim());
-              if (val == result) {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ParentDashboardScreen()),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Chưa đúng rồi! Hãy thử lại nhé.')),
-                );
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('XÁC NHẬN', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
-        ],
-      ),
-    );
+    if (mounted) {
+      if (!hasPin) {
+        ParentPinDialogs.showCreatePinDialog(context);
+      } else {
+        ParentPinDialogs.showVerifyPinDialog(context);
+      }
+    }
   }
 
   void _showLogoutConfirm(BuildContext context) {

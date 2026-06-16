@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/kidio_models.dart';
 import '../repositories/topic_repository.dart';
+import '../repositories/lesson_repository.dart';
 import '../repositories/tts_repository.dart';
 import '../providers/child_provider.dart';
 import '../providers/progress_provider.dart';
 import '../providers/pronunciation_provider.dart';
 import '../utils/content_parser.dart';
 import '../local/cache_service.dart';
+import '../api/api_client.dart';
 
 class LessonDetailScreen extends StatefulWidget {
   final String lessonId;
@@ -48,12 +50,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   }
 
   Future<Lesson> _fetchLessonAndStatus() async {
-    final topicRepo = context.read<TopicRepository>();
+    final lessonRepo = context.read<LessonRepository>();
     final progressProvider = context.read<ProgressProvider>();
     final childId = context.read<ChildProvider>().selectedChild?.id;
 
     try {
-      final lesson = await topicRepo.fetchLessonById(widget.lessonId);
+      final lesson = await lessonRepo.getLessonById(widget.lessonId);
       await _cacheService.saveLesson(lesson);
 
       if (childId != null) {
@@ -75,10 +77,9 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
       return;
     }
     try {
-      final topicRepo = context.read<TopicRepository>();
       final ttsRepo = context.read<TtsRepository>();
       
-      final dioBaseUrl = topicRepo.apiClient.dio.options.baseUrl;
+      final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
       final response = await ttsRepo.synthesize(text);
       
       // Chuyển đổi sang HTTP nếu là IP local để tránh lỗi SSL trên MediaPlayer của Android
@@ -101,8 +102,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     setState(() => _isSynthesizingLesson = true);
     try {
       final ttsRepo = context.read<TtsRepository>();
-      final topicRepo = context.read<TopicRepository>();
-      final dioBaseUrl = topicRepo.apiClient.dio.options.baseUrl;
+      final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
 
       debugPrint("Đang gọi API tổng hợp cả bài học...");
       final response = await ttsRepo.synthesizeLesson(widget.lessonId);

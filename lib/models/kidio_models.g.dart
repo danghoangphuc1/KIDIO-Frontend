@@ -353,3 +353,15 @@ Map<String, dynamic> _$ParentDashboardOverviewResponseToJson(
       'weeklyProgress': instance.weeklyProgress.map((e) => e.toJson()).toList(),
       'comparisons': instance.comparisons.map((e) => e.toJson()).toList(),
     };
+
+TtsVoice _$TtsVoiceFromJson(Map<String, dynamic> json) => TtsVoice(
+      name: json['name'] as String,
+      locale: json['locale'] as String,
+      gender: json['gender'] as String,
+    );
+
+Map<String, dynamic> _$TtsVoiceToJson(TtsVoice instance) => <String, dynamic>{
+      'name': instance.name,
+      'locale': instance.locale,
+      'gender': instance.gender,
+    };

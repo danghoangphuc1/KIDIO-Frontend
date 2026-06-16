@@ -59,4 +59,29 @@ class ChildApi {
       rethrow;
     }
   }
+
+  Future<Child> getChildById(String childId) async {
+    try {
+      final response = await _dio.get('Child/$childId');
+      return Child.fromJson(response.data['data']);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> restoreChild(String childId) async {
+    try {
+      await _dio.patch('Child/$childId/restore');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> hardDeleteChild(String childId) async {
+    try {
+      await _dio.delete('Child/$childId/hard');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

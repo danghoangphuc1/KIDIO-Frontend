@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../api/api_client.dart';
+import '../models/kidio_models.dart';
 
 class LoginResponse {
   final bool success;
@@ -172,6 +173,60 @@ class AuthApi {
       return _handleDioError(e);
     } catch (e) {
       return LoginResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _dio.post('Auth/logout');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // --- Parental PIN APIs ---
+  Future<LoginResponse> setParentPin(String userId, String newPin) async {
+    try {
+      final response = await _dio.post('users/parent-pin', data: {
+        'userId': userId,
+        'newPin': newPin,
+      });
+      return LoginResponse(
+        success: response.data['success'] ?? true, // Assume true if 200 OK
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return LoginResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<LoginResponse> verifyPassword(String userId, String password) async {
+    try {
+      final response = await _dio.post('users/verify-password', data: {
+        'userId': userId,
+        'password': password,
+      });
+      final bool isSuccess = response.data['data'] == true;
+      return LoginResponse(
+        success: isSuccess,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return LoginResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<UserProfile> getCurrentUser() async {
+    try {
+      final response = await _dio.get('Auth/me');
+      final data = response.data['data'] ?? response.data;
+      return UserProfile.fromJson(data);
+    } catch (e) {
+      rethrow;
     }
   }
 

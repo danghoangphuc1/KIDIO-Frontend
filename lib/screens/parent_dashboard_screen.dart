@@ -5,6 +5,7 @@ import '../providers/dashboard_provider.dart';
 import '../providers/child_provider.dart';
 import '../providers/progress_provider.dart';
 import '../models/kidio_models.dart';
+import '../widgets/parent_pin_dialogs.dart' as import_parent_pin_dialogs;
 import 'change_password_screen.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
@@ -173,6 +174,29 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
               },
               icon: const Icon(Icons.lock_open, size: 20),
               label: const Text('THAY ĐỔI MẬT KHẨU', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.indigo,
+                side: const BorderSide(color: Colors.indigoAccent, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                import_parent_pin_dialogs.ParentPinDialogs.showVerifyPinDialog(
+                  context,
+                  onSuccess: () {
+                    // Sau khi nhập đúng PIN cũ, hiển thị dialog tạo PIN mới
+                    import_parent_pin_dialogs.ParentPinDialogs.showCreatePinDialog(context);
+                  },
+                );
+              },
+              icon: const Icon(Icons.dialpad, size: 20),
+              label: const Text('THAY ĐỔI MÃ PIN', style: TextStyle(fontWeight: FontWeight.bold)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.indigo,
                 side: const BorderSide(color: Colors.indigoAccent, width: 1.5),

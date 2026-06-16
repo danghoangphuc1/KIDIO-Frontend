@@ -1,70 +1,48 @@
-import '../api/api_client.dart';
 import '../models/kidio_models.dart';
+import '../services/topic_api.dart';
 
 class TopicRepository {
-  final ApiClient apiClient;
+  final TopicApi _topicApi;
 
-  TopicRepository(this.apiClient);
+  TopicRepository(this._topicApi);
 
   Future<PagedResult<Topic>> fetchTopics({
     int pageNumber = 1,
     int pageSize = 10,
     String? q,
-  }) async {
-    try {
-      // Backend route is api/Topic
-      final response = await apiClient.dio.get('Topic', queryParameters: {
-        'pageNumber': pageNumber,
-        'pageSize': pageSize,
-        if (q != null) 'q': q,
-      });
+  }) => _topicApi.fetchTopics(pageNumber: pageNumber, pageSize: pageSize, q: q);
 
-      final data = response.data['data'];
+  Future<Topic> fetchTopicById(String id) => _topicApi.fetchTopicById(id);
 
-      return PagedResult<Topic>.fromJson(
-        data,
-        (json) => Topic.fromJson(json as Map<String, dynamic>),
-      );
-    } catch (e) {
-      rethrow;
-    }
-  }
+  Future<Topic> createTopic({
+    required String name,
+    String? description,
+    String? iconUrl,
+    int? orderIndex,
+  }) => _topicApi.createTopic(
+      name: name,
+      description: description,
+      iconUrl: iconUrl,
+      orderIndex: orderIndex,
+    );
 
-  Future<Topic> fetchTopicById(String id) async {
-    try {
-      // Backend route is api/Topic/{id}
-      final response = await apiClient.dio.get('Topic/$id');
-      final data = response.data['data'] ?? response.data;
-      return Topic.fromJson(data);
-    } catch (e) {
-      rethrow;
-    }
-  }
+  Future<Topic> updateTopic({
+    required String topicId,
+    required String name,
+    String? description,
+    String? iconUrl,
+    int? orderIndex,
+  }) => _topicApi.updateTopic(
+      topicId: topicId,
+      name: name,
+      description: description,
+      iconUrl: iconUrl,
+      orderIndex: orderIndex,
+    );
 
-  Future<Lesson> fetchLessonById(String id) async {
-    try {
-      // Backend route is api/Lesson/{id}
-      final response = await apiClient.dio.get('Lesson/$id');
-      final data = response.data['data'] ?? response.data;
-      return Lesson.fromJson(data);
-    } catch (e) {
-      rethrow;
-    }
-  }
+  Future<void> deleteTopic(String topicId) => _topicApi.deleteTopic(topicId);
 
-  Future<List<Lesson>> fetchLessonsByTopicId(String topicId) async {
-    try {
-      // Backend route is api/Lesson/topic/{topicId}
-      final response = await apiClient.dio.get('Lesson/topic/$topicId');
+  Future<void> restoreTopic(String topicId) => _topicApi.restoreTopic(topicId);
 
-      final data = response.data['data'];
-      if (data != null && data['items'] is List) {
-        final List items = data['items'];
-        return items.map((json) => Lesson.fromJson(json as Map<String, dynamic>)).toList();
-      }
-      return [];
-    } catch (e) {
-      rethrow;
-    }
-  }
+  Future<void> hardDeleteTopic(String topicId) => _topicApi.hardDeleteTopic(topicId);
 }
