@@ -12,15 +12,15 @@ class TopicRepository {
     String? q,
   }) async {
     try {
-      final response = await apiClient.dio.get('/Topic', queryParameters: {
+      // Backend route is api/Topic
+      final response = await apiClient.dio.get('Topic', queryParameters: {
         'pageNumber': pageNumber,
         'pageSize': pageSize,
         if (q != null) 'q': q,
       });
 
-      // Backend bọc kết quả trong field 'data'
       final data = response.data['data'];
-      
+
       return PagedResult<Topic>.fromJson(
         data,
         (json) => Topic.fromJson(json as Map<String, dynamic>),
@@ -32,9 +32,9 @@ class TopicRepository {
 
   Future<Topic> fetchTopicById(String id) async {
     try {
-      final response = await apiClient.dio.get('/Topic/$id');
-      // Thường thì chi tiết cũng nằm trong field 'data'
-      final data = response.data['success'] == true ? response.data['data'] : response.data;
+      // Backend route is api/Topic/{id}
+      final response = await apiClient.dio.get('Topic/$id');
+      final data = response.data['data'] ?? response.data;
       return Topic.fromJson(data);
     } catch (e) {
       rethrow;
@@ -43,8 +43,9 @@ class TopicRepository {
 
   Future<Lesson> fetchLessonById(String id) async {
     try {
-      final response = await apiClient.dio.get('/Lesson/$id');
-      final data = response.data['success'] == true ? response.data['data'] : response.data;
+      // Backend route is api/Lesson/{id}
+      final response = await apiClient.dio.get('Lesson/$id');
+      final data = response.data['data'] ?? response.data;
       return Lesson.fromJson(data);
     } catch (e) {
       rethrow;
@@ -53,9 +54,9 @@ class TopicRepository {
 
   Future<List<Lesson>> fetchLessonsByTopicId(String topicId) async {
     try {
-      final response = await apiClient.dio.get('/Lesson/topic/$topicId');
+      // Backend route is api/Lesson/topic/{topicId}
+      final response = await apiClient.dio.get('Lesson/topic/$topicId');
 
-      // Sửa ở đây: Truy cập vào data rồi đến items
       final data = response.data['data'];
       if (data != null && data['items'] is List) {
         final List items = data['items'];

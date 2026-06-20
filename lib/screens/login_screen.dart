@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/auth_provider.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,111 +12,241 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // Sử dụng Client ID khớp với dự án Google bạn đang quản lý (374569...)
-    serverClientId: '374569495508-vuonlvgep7ike3cps4f8n1bsv88v2kgm.apps.googleusercontent.com',
+    serverClientId: '662300435630-69e4tl4ehv1b5t7s5tqkk5mfrunqpdvl.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleGoogleSignIn(AuthProvider authProvider) async {
+    try {
+      await _googleSignIn.signOut();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+
+      if (idToken != null) {
+        final success = await authProvider.loginWithGoogle(idToken);
+        if (success && mounted) {
+          // Điều hướng được xử lý bởi AuthWrapper
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lỗi: Không nhận được ID Token.')),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        debugPrint("Detailed Error: $error");
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Lỗi đăng nhập Google'),
+            content: Text('Không thể đăng nhập bằng Google.\n\n$error'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đồng ý'))
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleEmailLogin(AuthProvider authProvider) async {
+    if (_formKey.currentState!.validate()) {
+      await authProvider.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F9FF),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.school, size: 80, color: Colors.blue),
-                const SizedBox(height: 24),
-                const Text(
-                  'KIDIO',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Learn English with Fun!',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 48),
-                
-                if (authProvider.errorMessage != null)
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      authProvider.errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
+                    child: const Icon(Icons.auto_stories, size: 60, color: Colors.orangeAccent),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'KIDIO',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A237E),
+                      letterSpacing: 2,
                     ),
                   ),
+                  const Text(
+                    'Tiếng Anh cho bé',
+                    style: TextStyle(fontSize: 16, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 30),
 
-                authProvider.isLoading
-                    ? const CircularProgressIndicator()
-                    : SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            try {
-                              // Reset sign in to allow account re-selection
-                              await _googleSignIn.signOut();
-                              final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-                              if (googleUser == null) return;
+                  if (authProvider.errorMessage != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text(
+                        authProvider.errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
 
-                              final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-                              final idToken = googleAuth.idToken;
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      hintText: 'Email',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập email' : null,
+                  ),
+                  const SizedBox(height: 16),
 
-                              if (idToken != null) {
-                                await authProvider.loginWithGoogle(idToken);
-                              } else {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Error: No ID Token received.')),
-                                  );
-                                }
-                              }
-                            } catch (error) {
-                              if (mounted) {
-                                // Clear error to avoid confusion
-                                debugPrint("Detailed Error: $error");
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Google Sign-In Error'),
-                                    content: Text('Code 10 usually means SHA-1 mismatch.\n\n$error'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))
-                                    ],
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.login, size: 24),
-                          label: const Text('SIGN IN WITH GOOGLE'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade600,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: 'Mật khẩu',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập mật khẩu' : null,
+                  ),
+                  const SizedBox(height: 24),
+
+                  authProvider.isLoading
+                      ? const CircularProgressIndicator()
+                      : SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: () => _handleEmailLogin(authProvider),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              foregroundColor: Colors.white,
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
                             ),
+                            child: const Text('ĐĂNG NHẬP', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
                         ),
+                  const SizedBox(height: 12),
+
+                  const Row(
+                    children: [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('HOẶC', style: TextStyle(color: Colors.grey)),
                       ),
-              ],
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleGoogleSignIn(authProvider),
+                      icon: const Icon(Icons.login),
+                      label: const Text('ĐĂNG NHẬP VỚI GOOGLE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.blueAccent),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Text("Chưa có tài khoản? "),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(50, 30),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'ĐĂNG KÝ',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),

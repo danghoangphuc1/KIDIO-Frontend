@@ -183,6 +183,64 @@ class MockAuthApi extends _i1.Mock implements _i2.AuthApi {
       ) as _i5.Future<_i2.LoginResponse>);
 
   @override
+  _i5.Future<_i2.LoginResponse> login(
+    String? email,
+    String? password,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #login,
+          [
+            email,
+            password,
+          ],
+        ),
+        returnValue: _i5.Future<_i2.LoginResponse>.value(_FakeLoginResponse_0(
+          this,
+          Invocation.method(
+            #login,
+            [
+              email,
+              password,
+            ],
+          ),
+        )),
+      ) as _i5.Future<_i2.LoginResponse>);
+
+  @override
+  _i5.Future<_i2.LoginResponse> register({
+    required String? email,
+    required String? password,
+    required String? confirmPassword,
+    required String? displayName,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #register,
+          [],
+          {
+            #email: email,
+            #password: password,
+            #confirmPassword: confirmPassword,
+            #displayName: displayName,
+          },
+        ),
+        returnValue: _i5.Future<_i2.LoginResponse>.value(_FakeLoginResponse_0(
+          this,
+          Invocation.method(
+            #register,
+            [],
+            {
+              #email: email,
+              #password: password,
+              #confirmPassword: confirmPassword,
+              #displayName: displayName,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i2.LoginResponse>);
+
+  @override
   _i5.Future<_i2.LoginResponse> refresh(String? refreshToken) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -194,6 +252,22 @@ class MockAuthApi extends _i1.Mock implements _i2.AuthApi {
           Invocation.method(
             #refresh,
             [refreshToken],
+          ),
+        )),
+      ) as _i5.Future<_i2.LoginResponse>);
+
+  @override
+  _i5.Future<_i2.LoginResponse> resendVerification(String? email) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #resendVerification,
+          [email],
+        ),
+        returnValue: _i5.Future<_i2.LoginResponse>.value(_FakeLoginResponse_0(
+          this,
+          Invocation.method(
+            #resendVerification,
+            [email],
           ),
         )),
       ) as _i5.Future<_i2.LoginResponse>);

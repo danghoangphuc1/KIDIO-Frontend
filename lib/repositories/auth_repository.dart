@@ -20,6 +20,32 @@ class AuthRepository {
     return response;
   }
 
+  Future<LoginResponse> login(String email, String password) async {
+    final response = await _authApi.login(email, password);
+    if (response.success && response.accessToken != null) {
+      await _storage.write(key: 'accessToken', value: response.accessToken);
+      await _storage.write(key: 'refreshToken', value: response.refreshToken);
+      _apiClient.setAuthToken(response.accessToken);
+    }
+    return response;
+  }
+
+  Future<LoginResponse> register({
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required String displayName,
+  }) async {
+    return await _authApi.register(
+      email: email,
+      password: password,
+      confirmPassword: confirmPassword,
+      displayName: displayName,
+    );
+  }
+
+  Future<LoginResponse> resendVerification(String email) => _authApi.resendVerification(email);
+
   Future<void> logout() async {
     await _storage.delete(key: 'accessToken');
     await _storage.delete(key: 'refreshToken');
