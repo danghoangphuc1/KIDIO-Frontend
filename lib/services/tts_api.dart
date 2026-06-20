@@ -26,4 +26,19 @@ class TtsApi {
       rethrow;
     }
   }
+
+  Future<List<TtsVoice>> getVoices() async {
+    try {
+      final response = await _dio.get('tts/voices');
+      final data = response.data['data'];
+      if (data != null && data['items'] is List) {
+        return (data['items'] as List)
+            .map((json) => TtsVoice.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

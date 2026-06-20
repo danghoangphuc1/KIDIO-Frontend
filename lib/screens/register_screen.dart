@@ -16,6 +16,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -133,8 +135,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: _buildInputDecoration('Mật khẩu', Icons.lock_outline),
+                  obscureText: _obscurePassword,
+                  decoration: _buildInputDecoration('Mật khẩu', Icons.lock_outline, suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  )),
                   validator: (value) {
                     if (value == null || value.isEmpty) return 'Vui lòng nhập mật khẩu';
                     if (value.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
@@ -149,8 +158,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 TextFormField(
                   controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: _buildInputDecoration('Xác nhận mật khẩu', Icons.lock_reset),
+                  obscureText: _obscureConfirmPassword,
+                  decoration: _buildInputDecoration('Xác nhận mật khẩu', Icons.lock_reset, suffixIcon: IconButton(
+                    icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                  )),
                   validator: (value) {
                     if (value == null || value.isEmpty) return 'Vui lòng nhập lại mật khẩu';
                     if (value != _passwordController.text) return 'Mật khẩu không khớp';
@@ -186,10 +202,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  InputDecoration _buildInputDecoration(String hint, IconData icon) {
+  InputDecoration _buildInputDecoration(String hint, IconData icon, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
       prefixIcon: Icon(icon),
+      suffixIcon: suffixIcon,
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(

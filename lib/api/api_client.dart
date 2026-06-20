@@ -13,16 +13,16 @@ class ApiException implements Exception {
 
 class ApiClient {
   late final Dio _dio;
-  // Updated to machine IP from ipconfig
-  static const String _baseUrl = 'https://192.168.1.14:7014/api/';
+  // Updated to match your current IP (192.168.88.147)
+  static const String _baseUrl = 'https://192.168.88.147:7014/api/';
   Future<bool> Function()? onRefreshToken;
 
   ApiClient({Dio? dio, String? authToken}) {
     _dio = dio ?? Dio(
       BaseOptions(
         baseUrl: _baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 60),
         headers: {
           'Content-Type': 'application/json',
           if (authToken != null) 'Authorization': 'Bearer $authToken',
@@ -35,6 +35,7 @@ class ApiClient {
       _dio.httpClientAdapter = IOHttpClientAdapter(
         createHttpClient: () {
           final client = HttpClient();
+          client.connectionTimeout = const Duration(seconds: 10);
           client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
           return client;
         },

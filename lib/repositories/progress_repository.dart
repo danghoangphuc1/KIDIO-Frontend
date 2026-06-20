@@ -25,4 +25,10 @@ class ProgressRepository {
 
   Future<ChildProgressSummary> getChildSummary(String childId) =>
       _progressApi.getChildSummary(childId);
+
+  Future<List<LessonProgress>> getCompletedLessons(String childId) =>
+      _progressApi.getCompletedLessons(childId);
+
+  Future<List<LessonProgress>> getLearningHistory(String childId) =>
+      _progressApi.getLearningHistory(childId);
 }

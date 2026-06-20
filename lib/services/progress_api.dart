@@ -61,4 +61,37 @@ class ProgressApi {
       rethrow;
     }
   }
+
+  Future<List<LessonProgress>> getCompletedLessons(String childId, {int page = 1, int pageSize = 10}) async {
+    try {
+      final response = await _dio.get('Progress/child/$childId/completed-lessons', queryParameters: {
+        'pageNumber': page,
+        'pageSize': pageSize,
+      });
+      final data = response.data['data'];
+      if (data != null && data['items'] is List) {
+        return (data['items'] as List)
+            .map((json) => LessonProgress.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<LessonProgress>> getLearningHistory(String childId) async {
+    try {
+      final response = await _dio.get('Progress/child/$childId');
+      final data = response.data['data'];
+      if (data != null && data['items'] is List) {
+        return (data['items'] as List)
+            .map((json) => LessonProgress.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

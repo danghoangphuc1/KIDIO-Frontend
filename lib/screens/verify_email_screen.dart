@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/snackbar_utils.dart';
+
+import '../widgets/parent_pin_dialogs.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final String initialEmail;
@@ -73,9 +76,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         if (error.contains('verified') || error.contains('confirm')) {
           setState(() => _isErrorMode = true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(authProvider.errorMessage ?? 'Xác thực thất bại')),
-          );
+          CustomSnackBar.show(context, authProvider.errorMessage ?? 'Xác thực thất bại', isError: true);
         }
       }
     }
@@ -83,8 +84,16 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   Future<void> _handleNext() async {
     if (_isVerified) {
-      // Nếu đã xác thực xong, nhấn Tiếp tục để vào màn hình chọn bé
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // Nhấn Tiếp tục để tạo mã PIN (nếu chưa có) và vào màn hình chọn bé
+      final authProvider = context.read<AuthProvider>();
+      final hasPin = await authProvider.hasParentPin();
+      
+      if (!hasPin && mounted) {
+        await ParentPinDialogs.showCreatePinDialog(context, dismissible: false);
+      }
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
       return;
     }
 
@@ -106,9 +115,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     final emailToSend = _emailController.text.trim();
     
     if (emailToSend.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập email'), backgroundColor: Colors.orange),
-      );
+      CustomSnackBar.show(context, 'Vui lòng nhập email', isError: true);
       return;
     }
 
@@ -117,14 +124,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã gửi lại email xác thực!'), backgroundColor: Colors.green),
-        );
+        CustomSnackBar.show(context, 'Đã gửi lại email xác thực!');
         setState(() => _isErrorMode = false);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authProvider.errorMessage ?? 'Gửi lại thất bại'), backgroundColor: Colors.red),
-        );
+        CustomSnackBar.show(context, authProvider.errorMessage ?? 'Gửi lại thất bại', isError: true);
       }
     }
   }

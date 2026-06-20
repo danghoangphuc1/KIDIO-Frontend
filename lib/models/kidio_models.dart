@@ -10,6 +10,7 @@ class Vocabulary {
   final String? phoneticText;
   final String? audioUrl;
   final String? imageUrl;
+  final String? exampleSentence;
   final int orderIndex;
 
   Vocabulary({
@@ -19,6 +20,7 @@ class Vocabulary {
     this.phoneticText,
     this.audioUrl,
     this.imageUrl,
+    this.exampleSentence,
     required this.orderIndex,
   });
 
@@ -159,8 +161,10 @@ class LessonProgress {
 @JsonSerializable()
 class Achievement {
   final String id;
+  @JsonKey(name: 'name')
   final String title;
   final String? description;
+  @JsonKey(name: 'badgeUrl')
   final String? iconUrl;
   final String? achievementType;
   final DateTime? earnedAt;
@@ -387,3 +391,55 @@ class ParentDashboardOverviewResponse {
   Map<String, dynamic> toJson() => _$ParentDashboardOverviewResponseToJson(this);
 }
 
+class UserProfile {
+  final String id;
+  final String email;
+  final String displayName;
+  final List<String>? roles;
+
+  UserProfile({
+    required this.id,
+    required this.email,
+    required this.displayName,
+    this.roles,
+  });
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    List<String>? parsedRoles;
+    if (json['roles'] is List) {
+      parsedRoles = (json['roles'] as List).map((e) => e.toString()).toList();
+    } else if (json['role'] is String) {
+      parsedRoles = [json['role'] as String];
+    }
+
+    return UserProfile(
+      id: json['id']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? json['name']?.toString() ?? '',
+      roles: parsedRoles,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'email': email,
+        'displayName': displayName,
+        'roles': roles,
+      };
+}
+
+@JsonSerializable()
+class TtsVoice {
+  final String name;
+  final String locale;
+  final String gender;
+
+  TtsVoice({
+    required this.name,
+    required this.locale,
+    required this.gender,
+  });
+
+  factory TtsVoice.fromJson(Map<String, dynamic> json) => _$TtsVoiceFromJson(json);
+  Map<String, dynamic> toJson() => _$TtsVoiceToJson(this);
+}

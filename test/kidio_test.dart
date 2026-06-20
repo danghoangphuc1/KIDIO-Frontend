@@ -4,11 +4,11 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
-import 'package:kidio_client/api/api_client.dart';
 import 'package:kidio_client/repositories/topic_repository.dart';
 import 'package:kidio_client/models/kidio_models.dart';
 import 'package:kidio_client/widgets/topics_list_widget.dart';
 import 'package:kidio_client/providers/topic_provider.dart';
+import 'package:kidio_client/services/topic_api.dart';
 
 import 'package:kidio_client/local/cache_service.dart';
 
@@ -22,8 +22,8 @@ void main() {
       
       when(mockDio.interceptors).thenReturn(Interceptors());
       
-      final apiClient = ApiClient(dio: mockDio);
-      final repository = TopicRepository(apiClient);
+      final topicApi = TopicApi(mockDio);
+      final repository = TopicRepository(topicApi);
 
       final mockResponse = {
         'success': true,

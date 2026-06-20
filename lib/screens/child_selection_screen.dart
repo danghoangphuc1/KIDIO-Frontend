@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/child_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/kidio_models.dart';
+import '../widgets/parent_pin_dialogs.dart';
 import 'parent_dashboard_screen.dart';
 
 class ChildSelectionScreen extends StatefulWidget {
@@ -17,146 +18,298 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<ChildProvider>().loadChildren();
     });
   }
 
+  bool _pinChecked = false;
+
+  void _checkPinIfNeeded() {
+    if (_pinChecked) return;
+    
+    // Chỉ kiểm tra khi màn hình này đang là màn hình hiển thị trên cùng (không bị VerifyEmail đè lên)
+    if (ModalRoute.of(context)?.isCurrent == true) {
+      _pinChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final authProvider = context.read<AuthProvider>();
+        final hasPin = await authProvider.hasParentPin();
+        if (!hasPin && mounted) {
+          await ParentPinDialogs.showCreatePinDialog(context, dismissible: false);
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    _checkPinIfNeeded();
     final childProvider = context.watch<ChildProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F7FF), // Nhạt và tươi sáng hơn
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: TextButton.icon(
-          onPressed: () => _showParentVerification(context),
-          icon: const Icon(Icons.security, color: Colors.indigoAccent),
-          label: const Text('Phụ huynh', style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold)),
+      backgroundColor: const Color(0xFFF8FBFF), // Màu nền nhẹ nhàng, hiện đại
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.blue.shade50,
+              const Color(0xFFF8FBFF),
+            ],
+          ),
         ),
-        leadingWidth: 140,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.redAccent, size: 28),
-            onPressed: () => _showLogoutConfirm(context),
-          )
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            // Logo hoặc Icon vui nhộn ở trên cùng
-            const Icon(Icons.auto_stories, size: 50, color: Colors.orangeAccent),
-            const SizedBox(height: 10),
-            const Text(
-              'Hôm nay ai sẽ học nhỉ?',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A237E),
-                fontFamily: 'ShortStack', // Giả sử có font chữ bo tròn
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Chọn một hồ sơ để bắt đầu hành trình',
-                style: TextStyle(fontSize: 15, color: Colors.blueGrey, fontWeight: FontWeight.w500),
-              ),
-            ),
-            const SizedBox(height: 30),
-            Expanded(
-              child: childProvider.isLoading && childProvider.children.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 30,
-                        mainAxisSpacing: 30,
-                        childAspectRatio: 0.8,
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      // Hình minh họa vui nhộn
+                      Hero(
+                        tag: 'app_logo',
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.1),
+                                blurRadius: 20,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.auto_stories,
+                            size: 60,
+                            color: Colors.orangeAccent,
+                          ),
+                        ),
                       ),
-                      itemCount: childProvider.children.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index < childProvider.children.length) {
-                          return _buildChildCard(context, childProvider.children[index], index);
-                        } else {
-                          return _buildAddChildCard(context);
-                        }
-                      },
-                    ),
-            ),
-          ],
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Hôm nay ai học nhỉ?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1A237E),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade100.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: const Text(
+                          'Chọn hồ sơ của bé để bắt đầu nhé!',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.blueGrey,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      
+                      if (childProvider.isLoading && childProvider.children.isEmpty)
+                        const Center(child: CircularProgressIndicator())
+                      else
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Wrap(
+                            spacing: 24,
+                            runSpacing: 30,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              ...childProvider.children.asMap().entries.map((entry) {
+                                return _buildChildCard(context, entry.value, entry.key);
+                              }),
+                              _buildAddChildCard(context),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildAppBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Nút Phụ huynh được thiết kế lại đẹp hơn
+          GestureDetector(
+            onTap: () => _showParentVerification(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.admin_panel_settings_rounded, color: Colors.indigoAccent, size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'PHỤ HUYNH',
+                    style: TextStyle(
+                      color: Colors.indigoAccent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Nút Đăng xuất
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 22),
+            ),
+            onPressed: () => _showLogoutConfirm(context),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildChildCard(BuildContext context, Child child, int index) {
-    // Màu sắc khác nhau cho từng bé
-    final List<Color> colors = [Colors.orange, Colors.blue, Colors.green, Colors.purple, Colors.pink];
+    final List<Color> colors = [
+      Colors.orangeAccent,
+      Colors.blueAccent,
+      Colors.greenAccent.shade700,
+      Colors.purpleAccent,
+      Colors.pinkAccent,
+    ];
     final color = colors[index % colors.length];
 
     return InkWell(
-      onTap: () {
-        context.read<ChildProvider>().selectChild(child);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
+      onTap: () => context.read<ChildProvider>().selectChild(child),
+      borderRadius: BorderRadius.circular(32),
+      child: SizedBox(
+        width: 140,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: color.withOpacity(0.5), width: 4),
-              ),
-              child: ClipOval(
-                child: child.avatarUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: child.avatarUrl!,
-                        fit: BoxFit.contain,
-                        placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                        errorWidget: (context, url, error) => Icon(Icons.face, size: 50, color: color),
-                      )
-                    : Icon(Icons.face, size: 50, color: color),
-              ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Hiệu ứng đổ bóng màu sắc
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                ),
+                // Avatar chính
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color, width: 4),
+                  ),
+                  child: ClipOval(
+                    child: child.avatarUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: child.avatarUrl!,
+                            fit: BoxFit.contain,
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(strokeWidth: 2, color: color),
+                            ),
+                            errorWidget: (context, url, error) => Icon(Icons.face_rounded, size: 60, color: color),
+                          )
+                        : Icon(Icons.face_rounded, size: 60, color: color),
+                  ),
+                ),
+                // Huy hiệu nhỏ góc dưới
+                Positioned(
+                  bottom: 2,
+                  right: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Colors.amber,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                    ),
+                    child: const Icon(Icons.star_rounded, color: Colors.white, size: 16),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Text(
               child.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A237E),
+              ),
             ),
             const SizedBox(height: 4),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '${child.age} tuổi',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+                '${child.age} TUỔI',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],
@@ -168,20 +321,33 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
   Widget _buildAddChildCard(BuildContext context) {
     return InkWell(
       onTap: () => _showAddChildDialog(context),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: Colors.blueAccent.withOpacity(0.3), width: 2, style: BorderStyle.solid),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      borderRadius: BorderRadius.circular(32),
+      child: SizedBox(
+        width: 140,
+        child: Column(
           children: [
-            Icon(Icons.add_circle_outline, size: 60, color: Colors.blueAccent),
-            SizedBox(height: 10),
-            Text(
+            Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.5),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.blueAccent.withOpacity(0.3),
+                  width: 3,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: const Icon(Icons.add_rounded, size: 50, color: Colors.blueAccent),
+            ),
+            const SizedBox(height: 14),
+            const Text(
               'Thêm bé',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.blueAccent,
+              ),
             ),
           ],
         ),
@@ -203,7 +369,10 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
         builder: (dialogContext, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           title: const Center(
-            child: Text('Tạo hồ sơ cho bé', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
+            child: Text(
+              'Tạo hồ sơ cho bé',
+              style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1A237E)),
+            ),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -213,8 +382,11 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Chọn linh vật Pokemon:', style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 15),
+                    const Text(
+                      'Chọn linh vật đồng hành:',
+                      style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       height: 100,
                       child: ListView.builder(
@@ -226,7 +398,8 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
                           final isSelected = selectedAvatar == avatarUrl;
                           return GestureDetector(
                             onTap: () => setDialogState(() => selectedAvatar = avatarUrl),
-                            child: Container(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
                               margin: const EdgeInsets.only(right: 15),
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
@@ -236,6 +409,9 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
                                   color: isSelected ? Colors.orange : Colors.grey.shade200,
                                   width: 3,
                                 ),
+                                boxShadow: isSelected
+                                    ? [BoxShadow(color: Colors.orange.withOpacity(0.2), blurRadius: 8)]
+                                    : null,
                               ),
                               child: CachedNetworkImage(
                                 imageUrl: avatarUrl,
@@ -248,21 +424,23 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 24),
                     TextFormField(
                       controller: nameController,
-                      decoration: _buildInputDecor('Tên của bé', Icons.face),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      decoration: _buildInputDecor('Tên gọi của bé', Icons.face_rounded),
                       validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập tên' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: ageController,
-                      decoration: _buildInputDecor('Tuổi của bé', Icons.cake),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      decoration: _buildInputDecor('Tuổi của bé (4 - 10)', Icons.cake_rounded),
                       keyboardType: TextInputType.number,
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Vui lòng nhập tuổi';
                         final age = int.tryParse(v);
-                        if (age == null || age < 2 || age > 10) return 'Tuổi từ 2 đến 10 là tốt nhất';
+                        if (age == null || age < 4 || age > 10) return 'Bé từ 4 đến 10 tuổi';
                         return null;
                       },
                     ),
@@ -272,25 +450,29 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('HỦY', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orangeAccent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                elevation: 4,
               ),
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   final success = await childProvider.createChild(
-                        nameController.text.trim(),
-                        int.parse(ageController.text),
-                        avatarUrl: selectedAvatar,
-                      );
+                    nameController.text.trim(),
+                    int.parse(ageController.text),
+                    avatarUrl: selectedAvatar,
+                  );
                   if (success && mounted) Navigator.pop(ctx);
                 }
               },
-              child: const Text('Tạo ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('TẠO HỒ SƠ', style: TextStyle(fontWeight: FontWeight.w900)),
             ),
           ],
         ),
@@ -301,85 +483,30 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
   InputDecoration _buildInputDecor(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
+      labelStyle: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600),
       prefixIcon: Icon(icon, color: Colors.blueAccent),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: Colors.grey.shade300)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: Colors.grey.shade300)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Colors.blueAccent, width: 2)),
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Colors.white,
     );
   }
 
-  void _showParentVerification(BuildContext context) {
-    // Generate a random math equation
-    final num1 = (10 + (20 - 10) * (DateTime.now().millisecond / 1000)).floor();
-    final num2 = (2 + (9 - 2) * (DateTime.now().microsecond / 1000000)).floor();
-    final result = num1 * num2;
+  Future<void> _showParentVerification(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    final hasPin = await authProvider.hasParentPin();
     
-    final answerController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Row(
-          children: [
-            Icon(Icons.lock, color: Colors.indigoAccent),
-            SizedBox(width: 8),
-            Text('Khu vực Phụ huynh', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Vui lòng giải phép tính dưới đây để xác nhận bạn là phụ huynh:'),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                '$num1 x $num2 = ?',
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.indigo),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: answerController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: 'Nhập câu trả lời',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigoAccent, foregroundColor: Colors.white),
-            onPressed: () {
-              final val = int.tryParse(answerController.text.trim());
-              if (val == result) {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ParentDashboardScreen()),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Xác nhận thất bại. Câu trả lời không đúng.')),
-                );
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Xác nhận'),
-          ),
-        ],
-      ),
-    );
+    if (mounted) {
+      if (!hasPin) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ParentDashboardScreen()),
+        );
+      } else {
+        ParentPinDialogs.showVerifyPinDialog(context);
+      }
+    }
   }
 
   void _showLogoutConfirm(BuildContext context) {
@@ -387,16 +514,16 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Đăng xuất?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Bạn có muốn đăng xuất khỏi tài khoản phụ huynh không?'),
+        title: const Text('Đăng xuất?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const Text('Bạn có muốn đăng xuất khỏi tài khoản không?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Không')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('KHÔNG', style: TextStyle(fontWeight: FontWeight.bold))),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<AuthProvider>().logout();
             },
-            child: const Text('Có', style: TextStyle(color: Colors.red)),
+            child: const Text('CÓ, ĐĂNG XUẤT', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

@@ -11,4 +11,6 @@ class TtsRepository {
 
   Future<TtsResponse> synthesizeLesson(String lessonId) =>
       _api.synthesizeLesson(lessonId);
+
+  Future<List<TtsVoice>> getVoices() => _api.getVoices();
 }

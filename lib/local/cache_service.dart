@@ -8,112 +8,43 @@ class CacheService {
     final box = Hive.box(_boxName);
     await box.put('topics_page_$page', result.items.map((e) => e.toJson()).toList());
     await box.put('topics_total_$page', result.totalCount);
-    Future<void> saveLesson(Lesson lesson) async {
-    final box = Hive.box(_boxName);
-    await box.put('lesson_${lesson.id}', lesson.toJson());
   }
-
-  Lesson? getLesson(String id) {
-    final box = Hive.box(_boxName);
-    final data = box.get('lesson_$id');
-    return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
-  }
-}
 
   List<Topic>? getTopicsPage(int page) {
     final box = Hive.box(_boxName);
     final data = box.get('topics_page_$page');
     if (data == null) return null;
     return (data as List).map((e) => Topic.fromJson(Map<String, dynamic>.from(e))).toList();
-    Future<void> saveLesson(Lesson lesson) async {
-    final box = Hive.box(_boxName);
-    await box.put('lesson_${lesson.id}', lesson.toJson());
   }
-
-  Lesson? getLesson(String id) {
-    final box = Hive.box(_boxName);
-    final data = box.get('lesson_$id');
-    return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
-  }
-}
 
   int getTotalCountForPage(int page) {
     final box = Hive.box(_boxName);
     return box.get('topics_total_$page', defaultValue: 0);
-    Future<void> saveLesson(Lesson lesson) async {
-    final box = Hive.box(_boxName);
-    await box.put('lesson_${lesson.id}', lesson.toJson());
   }
-
-  Lesson? getLesson(String id) {
-    final box = Hive.box(_boxName);
-    final data = box.get('lesson_$id');
-    return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
-  }
-}
 
   Future<void> saveTopic(Topic topic) async {
     final box = Hive.box(_boxName);
     await box.put('topic_${topic.id}', topic.toJson());
-    Future<void> saveLesson(Lesson lesson) async {
-    final box = Hive.box(_boxName);
-    await box.put('lesson_${lesson.id}', lesson.toJson());
   }
-
-  Lesson? getLesson(String id) {
-    final box = Hive.box(_boxName);
-    final data = box.get('lesson_$id');
-    return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
-  }
-}
 
   Topic? getTopic(String id) {
     final box = Hive.box(_boxName);
     final data = box.get('topic_$id');
     return data != null ? Topic.fromJson(Map<String, dynamic>.from(data)) : null;
-    Future<void> saveLesson(Lesson lesson) async {
-    final box = Hive.box(_boxName);
-    await box.put('lesson_${lesson.id}', lesson.toJson());
   }
-
-  Lesson? getLesson(String id) {
-    final box = Hive.box(_boxName);
-    final data = box.get('lesson_$id');
-    return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
-  }
-}
 
   Future<void> saveLessonsForTopic(String topicId, List<Lesson> lessons) async {
     final box = Hive.box(_boxName);
     await box.put('lessons_topic_$topicId', lessons.map((e) => e.toJson()).toList());
-    Future<void> saveLesson(Lesson lesson) async {
-    final box = Hive.box(_boxName);
-    await box.put('lesson_${lesson.id}', lesson.toJson());
   }
-
-  Lesson? getLesson(String id) {
-    final box = Hive.box(_boxName);
-    final data = box.get('lesson_$id');
-    return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
-  }
-}
 
   List<Lesson>? getLessonsForTopic(String topicId) {
     final box = Hive.box(_boxName);
     final data = box.get('lessons_topic_$topicId');
     if (data == null) return null;
     return (data as List).map((e) => Lesson.fromJson(Map<String, dynamic>.from(e))).toList();
-    Future<void> saveLesson(Lesson lesson) async {
-    final box = Hive.box(_boxName);
-    await box.put('lesson_${lesson.id}', lesson.toJson());
   }
 
-  Lesson? getLesson(String id) {
-    final box = Hive.box(_boxName);
-    final data = box.get('lesson_$id');
-    return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
-  }
-}
   Future<void> saveLesson(Lesson lesson) async {
     final box = Hive.box(_boxName);
     await box.put('lesson_${lesson.id}', lesson.toJson());

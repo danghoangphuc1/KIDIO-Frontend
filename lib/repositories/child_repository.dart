@@ -20,4 +20,10 @@ class ChildRepository {
     String? avatarUrl,
   }) =>
       _childApi.updateChild(childId: childId, name: name, age: age, avatarUrl: avatarUrl);
+
+  Future<Child> getChildById(String childId) => _childApi.getChildById(childId);
+
+  Future<void> restoreChild(String childId) => _childApi.restoreChild(childId);
+
+  Future<void> hardDeleteChild(String childId) => _childApi.hardDeleteChild(childId);
 }

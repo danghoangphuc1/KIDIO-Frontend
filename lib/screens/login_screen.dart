@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/auth_provider.dart';
 import 'register_screen.dart';
+import '../screens/forgot_password_screen.dart';
+import '../utils/snackbar_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,9 +17,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '662300435630-69e4tl4ehv1b5t7s5tqkk5mfrunqpdvl.apps.googleusercontent.com',
+    serverClientId: '374569495508-vuonlvgep7ike3cps4f8n1bsv88v2kgm.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
 
@@ -44,9 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lỗi: Không nhận được ID Token.')),
-          );
+          CustomSnackBar.show(context, 'Lỗi: Không nhận được ID Token.', isError: true);
         }
       }
     } catch (error) {
@@ -156,10 +157,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   TextFormField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       hintText: 'Mật khẩu',
                       prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -169,7 +181,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập mật khẩu' : null,
                   ),
-                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                        );
+                      },
+                      child: const Text('Quên mật khẩu?', style: TextStyle(color: Colors.blueAccent)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
                   authProvider.isLoading
                       ? const CircularProgressIndicator()
