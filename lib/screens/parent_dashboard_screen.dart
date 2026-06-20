@@ -9,6 +9,8 @@ import '../models/kidio_models.dart';
 import '../widgets/parent_pin_dialogs.dart' as import_parent_pin_dialogs;
 import 'change_password_screen.dart';
 import '../utils/snackbar_utils.dart';
+import 'create_profile_screen.dart';
+
 
 class ParentDashboardScreen extends StatefulWidget {
   const ParentDashboardScreen({super.key});
@@ -429,7 +431,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => _showCreateChildDialog(context),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateProfileScreen()),
+                );
+              },
               icon: const Icon(Icons.person_add_alt_1),
               label: const Text('THÊM BÉ MỚI', style: TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
@@ -503,7 +510,14 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                            onPressed: () => _showEditChildDialog(context, child),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CreateProfileScreen(childToEdit: child),
+                                ),
+                              );
+                            },
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),

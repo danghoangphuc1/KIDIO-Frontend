@@ -245,22 +245,40 @@ class _VerifyPinDialog extends StatefulWidget {
   State<_VerifyPinDialog> createState() => _VerifyPinDialogState();
 }
 
-class _VerifyPinDialogState extends State<_VerifyPinDialog> {
+class _VerifyPinDialogState extends State<_VerifyPinDialog> with SingleTickerProviderStateMixin {
   String _pin = '';
   String _errorMsg = '';
   bool _isLocked = false;
   int _lockSeconds = 0;
   Timer? _timer;
 
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
+  bool _hasError = false;
+
   @override
   void initState() {
     super.initState();
     _checkLockStatus();
+
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _shakeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 12.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 12.0, end: -12.0), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -12.0, end: 12.0), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 12.0, end: -12.0), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -12.0, end: 0.0), weight: 1),
+    ]).animate(_shakeController);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _shakeController.dispose();
     super.dispose();
   }
 
@@ -300,7 +318,7 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
   }
 
   void _onNumPressed(String num) {
-    if (_isLocked) return;
+    if (_isLocked || _hasError) return;
     setState(() {
       _errorMsg = '';
       if (_pin.length < 4) _pin += num;
@@ -311,7 +329,7 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
   }
 
   void _onBackspace() {
-    if (_isLocked) return;
+    if (_isLocked || _hasError) return;
     setState(() {
       _errorMsg = '';
       if (_pin.isNotEmpty) {
@@ -353,22 +371,44 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
       
       if (!mounted) return;
 
+      // Shake animation trigger
+      _shakeController.forward(from: 0.0);
+
       if (attempts >= 5) {
         final lockExpiration = DateTime.now().add(const Duration(seconds: 60));
         await authProvider.setPinLockExpiration(lockExpiration);
         setState(() {
           _isLocked = true;
           _lockSeconds = 60;
-          _pin = '';
-          _errorMsg = 'Nhập sai quá nhiều lần!';
-          _isVerifying = false;
+          _hasError = true;
+          _errorMsg = '❌ Nhập sai quá nhiều lần!';
         });
         _startTimer();
+        
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted) {
+            setState(() {
+              _pin = '';
+              _hasError = false;
+              _isVerifying = false;
+            });
+          }
+        });
       } else {
         setState(() {
-          _errorMsg = 'Mã PIN không đúng! (Còn ${5 - attempts} lần thử)';
-          _pin = '';
-          _isVerifying = false;
+          _hasError = true;
+          _errorMsg = '❌ Wrong code! Try again.';
+        });
+        
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted) {
+            setState(() {
+              _pin = '';
+              _hasError = false;
+              _errorMsg = '';
+              _isVerifying = false;
+            });
+          }
         });
       }
     }
@@ -377,31 +417,74 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Container(
         padding: const EdgeInsets.all(24.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock, size: 48, color: Colors.indigoAccent),
+            const Icon(Icons.security_rounded, size: 52, color: Color(0xFF0EA5E9)),
             const SizedBox(height: 16),
             Text(
-              _isLocked ? 'Đã khoá Numpad' : 'Nhập mã PIN Phụ huynh',
+              _isLocked ? 'Locked Out' : 'Parent Gate',
               style: TextStyle(
-                fontSize: 20, 
-                fontWeight: FontWeight.bold, 
-                color: _isLocked ? Colors.red : const Color(0xFF1A237E)
+                fontSize: 22, 
+                fontWeight: FontWeight.w900, 
+                color: _isLocked ? Colors.red : const Color(0xFF1E3A8A)
               ),
             ),
             const SizedBox(height: 24),
-            _buildDots(_pin),
-            if (_errorMsg.isNotEmpty || _isLocked) ...[
-              const SizedBox(height: 12),
+            
+            // Shaking Dots Row
+            AnimatedBuilder(
+              animation: _shakeAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(_shakeAnimation.value, 0),
+                  child: child,
+                );
+              },
+              child: _buildDots(_pin),
+            ),
+            
+            const SizedBox(height: 12),
+            if (_hasError)
               Text(
-                _isLocked ? 'Vui lòng thử lại sau $_lockSeconds giây' : _errorMsg, 
-                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
+                _errorMsg,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              )
+            else if (_isLocked)
+              Text(
+                'Please try again in $_lockSeconds seconds',
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              )
+            else
+              const Text(
+                '🔑 Demo code: 1 2 3 4',
+                style: TextStyle(
+                  color: Colors.blueGrey,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
-            ],
+            
+            const SizedBox(height: 20),
+            
+            // Verify Code Button matching Figma specs
+            _buildVerifyCodeButton(),
+
             const SizedBox(height: 24),
             Opacity(
               opacity: _isLocked ? 0.3 : 1.0,
@@ -410,17 +493,50 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
                 child: _Numpad(onNumber: _onNumPressed, onBackspace: _onBackspace),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _showForgotPinDialog(context);
               },
-              child: const Text('Quên mã PIN?'),
+              child: const Text(
+                'Forgot PIN?',
+                style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0EA5E9)),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildVerifyCodeButton() {
+    final isEnabled = _pin.length == 4 && !_isLocked && !_isVerifying;
+    return SizedBox(
+      width: double.infinity,
+      child: isEnabled
+          ? _AnimatedVerifyButton(
+              text: 'Verify Code',
+              onPressed: _verify,
+              baseColor: const Color(0xFFFF2E93),
+              shadowColor: const Color(0xFFB8154E),
+            )
+          : Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Verify Code',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+            ),
     );
   }
 
@@ -429,16 +545,98 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
         final isFilled = index < currentInput.length;
+        Color dotColor = Colors.grey.shade300;
+        if (_hasError) {
+          dotColor = Colors.redAccent;
+        } else if (isFilled) {
+          dotColor = const Color(0xFFFF2E93); // Pink dots
+        }
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 8),
-          width: 16,
-          height: 16,
+          width: 18,
+          height: 18,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isFilled ? Colors.indigoAccent : Colors.grey.shade300,
+            color: dotColor,
+            border: Border.all(
+              color: _hasError
+                  ? Colors.red
+                  : isFilled
+                      ? const Color(0xFFFF2E93)
+                      : Colors.grey.shade400,
+              width: 1.5,
+            ),
           ),
         );
       }),
+    );
+  }
+}
+
+// Local 3D button widget to avoid circular imports
+class _AnimatedVerifyButton extends StatefulWidget {
+  final String text;
+  final VoidCallback onPressed;
+  final Color baseColor;
+  final Color shadowColor;
+
+  const _AnimatedVerifyButton({
+    required this.text,
+    required this.onPressed,
+    required this.baseColor,
+    required this.shadowColor,
+  });
+
+  @override
+  State<_AnimatedVerifyButton> createState() => _AnimatedVerifyButtonState();
+}
+
+class _AnimatedVerifyButtonState extends State<_AnimatedVerifyButton> {
+  bool _isTapped = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isTapped = true),
+      onTapUp: (_) => setState(() => _isTapped = false),
+      onTapCancel: () => setState(() => _isTapped = false),
+      onTap: widget.onPressed,
+      child: AnimatedScale(
+        scale: _isTapped ? 0.86 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: widget.shadowColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            margin: EdgeInsets.only(bottom: _isTapped ? 2 : 6),
+            decoration: BoxDecoration(
+              color: widget.baseColor,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: _isTapped
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: widget.baseColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              widget.text,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

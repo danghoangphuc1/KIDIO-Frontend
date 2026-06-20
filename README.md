@@ -49,7 +49,7 @@ Tài liệu tóm tắt tiến độ và hướng dẫn kỹ thuật cho dự án
 ## 3. Cấu hình kết nối & Hệ thống
 
 ### Thông số Backend
-- **Base URL:** `https://192.168.88.147:7014/api/` (IP máy chủ local).
+- **Base URL:** `https://10.87.43.252:7014/api/` (IP máy chủ local).
 - **Timeout:** 30 giây (đảm bảo các thao tác đăng ký không bị ngắt).
 - **SSL Security:** Đã cấu hình `badCertificateCallback` để chấp nhận chứng chỉ HTTPS tự ký từ máy tính cá nhân.
 

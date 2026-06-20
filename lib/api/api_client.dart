@@ -13,8 +13,18 @@ class ApiException implements Exception {
 
 class ApiClient {
   late final Dio _dio;
-  // Updated to match your current IP (192.168.88.147)
-  static const String _baseUrl = 'https://192.168.88.147:7014/api/';
+  // Dynamically compute the API Base URL to work across different developers' local setups:
+  // - Flutter Web: connects to the same host that serves the web page.
+  // - Android Emulator: connects to 10.0.2.2 (special loopback for emulator).
+  // - iOS Simulator / Desktop: connects to localhost.
+  static String get _baseUrl {
+    if (kIsWeb) {
+      return 'http://${Uri.base.host}:5109/api/';
+    }
+    return Platform.isAndroid 
+        ? 'http://10.0.2.2:5109/api/' 
+        : 'http://localhost:5109/api/';
+  }
   Future<bool> Function()? onRefreshToken;
 
   ApiClient({Dio? dio, String? authToken}) {
