@@ -13,6 +13,7 @@ Vocabulary _$VocabularyFromJson(Map<String, dynamic> json) => Vocabulary(
       phoneticText: json['phoneticText'] as String?,
       audioUrl: json['audioUrl'] as String?,
       imageUrl: json['imageUrl'] as String?,
+      exampleSentence: json['exampleSentence'] as String?,
       orderIndex: (json['orderIndex'] as num).toInt(),
     );
 
@@ -24,6 +25,7 @@ Map<String, dynamic> _$VocabularyToJson(Vocabulary instance) =>
       'phoneticText': instance.phoneticText,
       'audioUrl': instance.audioUrl,
       'imageUrl': instance.imageUrl,
+      'exampleSentence': instance.exampleSentence,
       'orderIndex': instance.orderIndex,
     };
 
@@ -117,9 +119,9 @@ Map<String, dynamic> _$LessonProgressToJson(LessonProgress instance) =>
 
 Achievement _$AchievementFromJson(Map<String, dynamic> json) => Achievement(
       id: json['id'] as String,
-      title: json['title'] as String,
+      title: json['name'] as String,
       description: json['description'] as String?,
-      iconUrl: json['iconUrl'] as String?,
+      iconUrl: json['badgeUrl'] as String?,
       achievementType: json['achievementType'] as String?,
       earnedAt: json['earnedAt'] == null
           ? null
@@ -129,9 +131,9 @@ Achievement _$AchievementFromJson(Map<String, dynamic> json) => Achievement(
 Map<String, dynamic> _$AchievementToJson(Achievement instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'title': instance.title,
+      'name': instance.title,
       'description': instance.description,
-      'iconUrl': instance.iconUrl,
+      'badgeUrl': instance.iconUrl,
       'achievementType': instance.achievementType,
       'earnedAt': instance.earnedAt?.toIso8601String(),
     };

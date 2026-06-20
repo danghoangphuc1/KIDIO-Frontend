@@ -10,6 +10,7 @@ class Vocabulary {
   final String? phoneticText;
   final String? audioUrl;
   final String? imageUrl;
+  final String? exampleSentence;
   final int orderIndex;
 
   Vocabulary({
@@ -19,6 +20,7 @@ class Vocabulary {
     this.phoneticText,
     this.audioUrl,
     this.imageUrl,
+    this.exampleSentence,
     required this.orderIndex,
   });
 
@@ -159,8 +161,10 @@ class LessonProgress {
 @JsonSerializable()
 class Achievement {
   final String id;
+  @JsonKey(name: 'name')
   final String title;
   final String? description;
+  @JsonKey(name: 'badgeUrl')
   final String? iconUrl;
   final String? achievementType;
   final DateTime? earnedAt;

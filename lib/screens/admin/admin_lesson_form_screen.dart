@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/snackbar_utils.dart';
 import 'package:provider/provider.dart';
 import '../../models/kidio_models.dart';
 import '../../repositories/lesson_repository.dart';
@@ -6,8 +7,9 @@ import '../../repositories/lesson_repository.dart';
 class AdminLessonFormScreen extends StatefulWidget {
   final String topicId;
   final Lesson? lesson; // Null for create mode
+  final int? nextOrderIndex;
 
-  const AdminLessonFormScreen({super.key, required this.topicId, this.lesson});
+  const AdminLessonFormScreen({super.key, required this.topicId, this.lesson, this.nextOrderIndex});
 
   @override
   State<AdminLessonFormScreen> createState() => _AdminLessonFormScreenState();
@@ -26,6 +28,9 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
   late TextEditingController _thumbCtrl;
   late TextEditingController _audioCtrl;
   late TextEditingController _orderIndexCtrl;
+  late TextEditingController _contentJsonCtrl;
+
+  bool _isFetching = false;
 
   @override
   void initState() {
@@ -33,13 +38,53 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
     final l = widget.lesson;
     _titleCtrl = TextEditingController(text: l?.title ?? '');
     _descCtrl = TextEditingController(text: l?.description ?? '');
-    _typeCtrl = TextEditingController(text: l?.lessonType ?? 'Video');
-    _diffCtrl = TextEditingController(text: l?.difficulty ?? 'Easy');
+    _typeCtrl = TextEditingController(text: l?.lessonType ?? 'Story');
+    _diffCtrl = TextEditingController(text: l?.difficulty ?? 'Beginner');
     _focusCtrl = TextEditingController(text: l?.skillFocus ?? 'Listening');
     _durationCtrl = TextEditingController(text: l?.durationSeconds?.toString() ?? '180');
     _thumbCtrl = TextEditingController(text: l?.thumbnailUrl ?? '');
     _audioCtrl = TextEditingController(text: l?.audioUrl ?? '');
-    _orderIndexCtrl = TextEditingController(text: l?.orderIndex.toString() ?? '0');
+    
+    String orderText = '';
+    if (l != null) {
+      orderText = l.orderIndex.toString();
+    } else if (widget.nextOrderIndex != null) {
+      orderText = widget.nextOrderIndex.toString();
+    } else {
+      orderText = '1';
+    }
+    _orderIndexCtrl = TextEditingController(text: orderText);
+    
+    _contentJsonCtrl = TextEditingController(text: l?.contentJson ?? '');
+
+    if (l != null) {
+      _fetchFullLesson(l.id);
+    }
+  }
+
+  Future<void> _fetchFullLesson(String id) async {
+    setState(() => _isFetching = true);
+    try {
+      final repo = context.read<LessonRepository>();
+      final fullLesson = await repo.getLessonById(id);
+      if (!mounted) return;
+      setState(() {
+        _titleCtrl.text = fullLesson.title;
+        _descCtrl.text = fullLesson.description ?? '';
+        _typeCtrl.text = fullLesson.lessonType ?? 'Story';
+        _diffCtrl.text = fullLesson.difficulty ?? 'Beginner';
+        _focusCtrl.text = fullLesson.skillFocus ?? 'Listening';
+        _durationCtrl.text = fullLesson.durationSeconds?.toString() ?? '180';
+        _thumbCtrl.text = fullLesson.thumbnailUrl ?? '';
+        _audioCtrl.text = fullLesson.audioUrl ?? '';
+        _orderIndexCtrl.text = fullLesson.orderIndex.toString();
+        _contentJsonCtrl.text = fullLesson.contentJson ?? '';
+        _isFetching = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isFetching = false);
+    }
   }
 
   @override
@@ -53,6 +98,7 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
     _thumbCtrl.dispose();
     _audioCtrl.dispose();
     _orderIndexCtrl.dispose();
+    _contentJsonCtrl.dispose();
     super.dispose();
   }
 
@@ -82,10 +128,9 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
           thumbnailUrl: _thumbCtrl.text.trim(),
           audioUrl: _audioCtrl.text.trim(),
           orderIndex: order,
+          contentJson: _contentJsonCtrl.text.trim(),
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thêm bài học thành công!')),
-        );
+        CustomSnackBar.show(context, 'Thêm bài học thành công!');
       } else {
         // Update
         await repo.updateLesson(
@@ -99,19 +144,17 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
           thumbnailUrl: _thumbCtrl.text.trim(),
           audioUrl: _audioCtrl.text.trim(),
           orderIndex: order,
+          contentJson: _contentJsonCtrl.text.trim(),
+          isPublished: widget.lesson!.isPublished,
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cập nhật bài học thành công!')),
-        );
+        CustomSnackBar.show(context, 'Cập nhật bài học thành công!');
       }
       Navigator.pop(context, true);
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Có lỗi xảy ra: $e')),
-      );
+      CustomSnackBar.showError(context, e, prefix: '');
     }
   }
 
@@ -134,10 +177,12 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF1A237E)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
+      body: _isFetching
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -147,25 +192,67 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_typeCtrl, 'Loại (VD: Video, Quiz)', false)),
+                  Expanded(
+                    child: _buildDropdown(
+                      label: 'Loại bài học (*)',
+                      value: _typeCtrl.text.isEmpty ? null : _typeCtrl.text,
+                      items: const ['Story', 'Dialogue', 'VideoShort', 'PronunciationDrill'],
+                      onChanged: (val) { if (val != null) _typeCtrl.text = val; },
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField(_diffCtrl, 'Độ khó (Easy, Medium)', false)),
+                  Expanded(
+                    child: _buildDropdown(
+                      label: 'Độ khó (*)',
+                      value: _diffCtrl.text.isEmpty ? null : _diffCtrl.text,
+                      items: const ['Beginner', 'Elementary', 'PreIntermediate'],
+                      onChanged: (val) { if (val != null) _diffCtrl.text = val; },
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_focusCtrl, 'Kỹ năng (Listening)', false)),
+                  Expanded(
+                    child: _buildDropdown(
+                      label: 'Kỹ năng (*)',
+                      value: _focusCtrl.text.isEmpty ? null : _focusCtrl.text,
+                      items: const ['Listening', 'Speaking', 'Vocabulary', 'Pronunciation'],
+                      onChanged: (val) { if (val != null) _focusCtrl.text = val; },
+                    ),
+                  ),
                   const SizedBox(width: 16),
                   Expanded(child: _buildTextField(_durationCtrl, 'Thời lượng (giây)', false, isNumber: true)),
                 ],
               ),
               const SizedBox(height: 16),
-              _buildTextField(_thumbCtrl, 'URL Ảnh Thumbnail', false),
+              _buildUrlFieldWithDropdown(
+                ctrl: _thumbCtrl,
+                label: 'URL Ảnh Thumbnail',
+                sampleUrls: [
+                  {'name': 'Ảnh Koala (gấu túi)', 'url': 'https://cdn-icons-png.flaticon.com/512/3069/3069172.png'},
+                  {'name': 'Ảnh Cua', 'url': 'https://cdn-icons-png.flaticon.com/512/3069/3069168.png'},
+                  {'name': 'Ảnh Bò', 'url': 'https://img.icons8.com/color/512/cow.png'},
+                  {'name': 'Khỉ (Monkey)', 'url': 'https://cdn-icons-png.flaticon.com/512/3468/3468081.png'},
+                  {'name': 'Màu Đỏ (Red)', 'url': 'https://placehold.co/512x512/red/red.png'},
+                  {'name': 'Màu Xanh lá (Green)', 'url': 'https://placehold.co/512x512/green/green.png'},
+                  {'name': 'Màu Xanh dương (Blue)', 'url': 'https://placehold.co/512x512/blue/blue.png'},
+                ],
+              ),
               const SizedBox(height: 16),
-              _buildTextField(_audioCtrl, 'URL Video/Audio', false),
+              _buildUrlFieldWithDropdown(
+                ctrl: _audioCtrl,
+                label: 'URL Video/Audio',
+                sampleUrls: [
+                  {'name': 'Audio Cat', 'url': 'https://dict.youdao.com/dictvoice?audio=cat&type=1'},
+                  {'name': 'Audio Dog', 'url': 'https://dict.youdao.com/dictvoice?audio=dog&type=1'},
+                ],
+              ),
               const SizedBox(height: 16),
               _buildTextField(_orderIndexCtrl, 'Thứ tự hiển thị (Order)', false, isNumber: true),
+              const SizedBox(height: 16),
+              _buildTextField(_contentJsonCtrl, 'Nội dung (Content JSON)', false, maxLines: 5),
               const SizedBox(height: 32),
               SizedBox(
                 height: 56,
@@ -216,4 +303,97 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
       },
     );
   }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final validValue = (value != null && items.contains(value)) ? value : items.first;
+    if (validValue != value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onChanged(validValue);
+      });
+    }
+
+    return DropdownButtonFormField<String>(
+      value: validValue,
+      isExpanded: true, // Fix overflow issue
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      items: items.map((item) => DropdownMenuItem(
+        value: item, 
+        child: Text(item, overflow: TextOverflow.ellipsis),
+      )).toList(),
+      onChanged: onChanged,
+      validator: (val) {
+        if (val == null || val.isEmpty) return 'Vui lòng chọn';
+        return null;
+      },
+    );
+  }
+
+  Widget _buildUrlFieldWithDropdown({
+    required TextEditingController ctrl,
+    required String label,
+    required List<Map<String, String>> sampleUrls,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextFormField(
+                controller: ctrl,
+                decoration: InputDecoration(
+                  labelText: label,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 1,
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Mẫu',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                isExpanded: true,
+                items: [
+                  ...sampleUrls.map((sample) => DropdownMenuItem(
+                        value: sample['url'],
+                        child: Text(sample['name']!, overflow: TextOverflow.ellipsis),
+                      )),
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('Trống (Clear)'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    ctrl.text = val;
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
+

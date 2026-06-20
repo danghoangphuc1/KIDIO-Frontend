@@ -370,6 +370,56 @@ class MockAuthApi extends _i1.Mock implements _i2.AuthApi {
       ) as _i6.Future<void>);
 
   @override
+  _i6.Future<_i2.LoginResponse> setParentPin(
+    String? userId,
+    String? newPin,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setParentPin,
+          [
+            userId,
+            newPin,
+          ],
+        ),
+        returnValue: _i6.Future<_i2.LoginResponse>.value(_FakeLoginResponse_0(
+          this,
+          Invocation.method(
+            #setParentPin,
+            [
+              userId,
+              newPin,
+            ],
+          ),
+        )),
+      ) as _i6.Future<_i2.LoginResponse>);
+
+  @override
+  _i6.Future<_i2.LoginResponse> verifyPassword(
+    String? userId,
+    String? password,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #verifyPassword,
+          [
+            userId,
+            password,
+          ],
+        ),
+        returnValue: _i6.Future<_i2.LoginResponse>.value(_FakeLoginResponse_0(
+          this,
+          Invocation.method(
+            #verifyPassword,
+            [
+              userId,
+              password,
+            ],
+          ),
+        )),
+      ) as _i6.Future<_i2.LoginResponse>);
+
+  @override
   _i6.Future<_i3.UserProfile> getCurrentUser() => (super.noSuchMethod(
         Invocation.method(
           #getCurrentUser,

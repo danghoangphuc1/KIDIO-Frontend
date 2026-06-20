@@ -5,13 +5,14 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import '../providers/auth_provider.dart';
 import '../screens/parent_dashboard_screen.dart';
+import '../utils/snackbar_utils.dart';
 
 class ParentPinDialogs {
-  static Future<void> showCreatePinDialog(BuildContext context) async {
-    return showDialog(
+  static Future<bool?> showCreatePinDialog(BuildContext context, {bool dismissible = true}) {
+    return showDialog<bool>(
       context: context,
-      barrierDismissible: false, // Bắt buộc tạo PIN
-      builder: (ctx) => const _CreatePinDialog(),
+      barrierDismissible: dismissible,
+      builder: (ctx) => _CreatePinDialog(dismissible: dismissible),
     );
   }
 
@@ -97,7 +98,8 @@ class _Numpad extends StatelessWidget {
 
 // --- Dialog Tạo PIN ---
 class _CreatePinDialog extends StatefulWidget {
-  const _CreatePinDialog();
+  final bool dismissible;
+  const _CreatePinDialog({this.dismissible = true});
 
   @override
   State<_CreatePinDialog> createState() => _CreatePinDialogState();
@@ -147,9 +149,8 @@ class _CreatePinDialogState extends State<_CreatePinDialog> {
       final success = await authProvider.setParentPin(_pin);
       if (success) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tạo mã PIN Phụ huynh thành công!')),
-          );
+          CustomSnackBar.show(context, 
+            'Tạo mã PIN Phụ huynh thành công!');
           Navigator.pop(context, true);
         }
       } else {
@@ -172,33 +173,46 @@ class _CreatePinDialogState extends State<_CreatePinDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.security, size: 48, color: Colors.indigoAccent),
-            const SizedBox(height: 16),
-            Text(
-              _isConfirmStep ? 'Xác nhận mã PIN' : 'Tạo mã PIN Phụ huynh',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.security, size: 48, color: Colors.indigoAccent),
+                const SizedBox(height: 16),
+                Text(
+                  _isConfirmStep ? 'Xác nhận mã PIN' : 'Tạo mã PIN Phụ huynh',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _isConfirmStep ? 'Nhập lại 4 số bạn vừa tạo' : 'Nhập 4 số để bảo vệ khu vực phụ huynh',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.blueGrey),
+                ),
+                const SizedBox(height: 24),
+                _buildDots(_isConfirmStep ? _confirmPin : _pin),
+                if (_errorMsg.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(_errorMsg, style: const TextStyle(color: Colors.red)),
+                ],
+                const SizedBox(height: 24),
+                _Numpad(onNumber: _onNumPressed, onBackspace: _onBackspace),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              _isConfirmStep ? 'Nhập lại 4 số bạn vừa tạo' : 'Nhập 4 số để bảo vệ khu vực phụ huynh',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.blueGrey),
+          ),
+          if (widget.dismissible)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.grey),
+                onPressed: () => Navigator.pop(context, false),
+              ),
             ),
-            const SizedBox(height: 24),
-            _buildDots(_isConfirmStep ? _confirmPin : _pin),
-            if (_errorMsg.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(_errorMsg, style: const TextStyle(color: Colors.red)),
-            ],
-            const SizedBox(height: 24),
-            _Numpad(onNumber: _onNumPressed, onBackspace: _onBackspace),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -306,11 +320,20 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
     });
   }
 
+  bool _isVerifying = false;
+
   Future<void> _verify() async {
-    if (_isLocked) return;
+    if (_isLocked || _isVerifying) return;
+    
+    setState(() {
+      _isVerifying = true;
+    });
+
     final authProvider = context.read<AuthProvider>();
     final isCorrect = await authProvider.verifyParentPin(_pin);
     
+    if (!mounted) return;
+
     if (isCorrect) {
       await authProvider.resetWrongPinAttempts();
       if (mounted) {
@@ -328,6 +351,8 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
       await authProvider.incrementWrongPinAttempts();
       final attempts = await authProvider.getWrongPinAttempts();
       
+      if (!mounted) return;
+
       if (attempts >= 5) {
         final lockExpiration = DateTime.now().add(const Duration(seconds: 60));
         await authProvider.setPinLockExpiration(lockExpiration);
@@ -336,12 +361,14 @@ class _VerifyPinDialogState extends State<_VerifyPinDialog> {
           _lockSeconds = 60;
           _pin = '';
           _errorMsg = 'Nhập sai quá nhiều lần!';
+          _isVerifying = false;
         });
         _startTimer();
       } else {
         setState(() {
           _errorMsg = 'Mã PIN không đúng! (Còn ${5 - attempts} lần thử)';
           _pin = '';
+          _isVerifying = false;
         });
       }
     }
@@ -460,9 +487,8 @@ class _ForgotPinDialogState extends State<_ForgotPinDialog> {
       await authProvider.deleteParentPin(); // Xóa PIN cũ
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Xác thực thành công. Mã PIN cũ đã bị xoá.')),
-        );
+        CustomSnackBar.show(context, 
+          'Xác thực thành công. Mã PIN cũ đã bị xoá.');
         ParentPinDialogs.showCreatePinDialog(context); // Yêu cầu tạo lại PIN
       }
     } else {
@@ -503,9 +529,8 @@ class _ForgotPinDialogState extends State<_ForgotPinDialog> {
         await authProvider.deleteParentPin(); // Xóa PIN cũ
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Xác thực thành công. Mã PIN cũ đã bị xoá.')),
-          );
+          CustomSnackBar.show(context, 
+            'Xác thực thành công. Mã PIN cũ đã bị xoá.');
           ParentPinDialogs.showCreatePinDialog(context); // Yêu cầu tạo lại PIN
         }
       } else {
@@ -619,3 +644,5 @@ class _ForgotPinDialogState extends State<_ForgotPinDialog> {
     );
   }
 }
+
+

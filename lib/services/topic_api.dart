@@ -64,6 +64,7 @@ class TopicApi {
     String? description,
     String? iconUrl,
     int? orderIndex,
+    bool? isActive,
   }) async {
     try {
       final response = await _dio.put('Topic/$topicId', data: {
@@ -71,6 +72,7 @@ class TopicApi {
         'description': description,
         'iconUrl': iconUrl,
         'orderIndex': orderIndex,
+        'isActive': isActive ?? true,
       });
       return Topic.fromJson(response.data['data']);
     } catch (e) {

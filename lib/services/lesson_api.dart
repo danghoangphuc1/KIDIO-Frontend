@@ -64,6 +64,7 @@ class LessonApi {
     String? thumbnailUrl,
     String? audioUrl,
     int? orderIndex,
+    String? contentJson,
   }) async {
     try {
       final response = await _dio.post('Lesson', data: {
@@ -77,6 +78,7 @@ class LessonApi {
         'thumbnailUrl': thumbnailUrl,
         'audioUrl': audioUrl,
         'orderIndex': orderIndex,
+        'contentJson': contentJson,
       });
       return Lesson.fromJson(response.data['data']);
     } catch (e) {
@@ -95,6 +97,8 @@ class LessonApi {
     String? thumbnailUrl,
     String? audioUrl,
     int? orderIndex,
+    String? contentJson,
+    bool? isPublished,
   }) async {
     try {
       final response = await _dio.put('Lesson/$lessonId', data: {
@@ -107,6 +111,8 @@ class LessonApi {
         'thumbnailUrl': thumbnailUrl,
         'audioUrl': audioUrl,
         'orderIndex': orderIndex,
+        'contentJson': contentJson,
+        'isPublished': isPublished ?? true,
       });
       return Lesson.fromJson(response.data['data']);
     } catch (e) {

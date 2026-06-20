@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../models/kidio_models.dart';
 import '../../repositories/lesson_repository.dart';
 import 'admin_lesson_form_screen.dart';
+import 'admin_vocabulary_list_screen.dart';
+import '../../utils/snackbar_utils.dart';
 
 class AdminLessonListScreen extends StatefulWidget {
   final Topic topic;
@@ -17,6 +19,7 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
   bool _isLoading = true;
   List<Lesson> _lessons = [];
   String? _errorMessage;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -69,14 +72,10 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
     try {
       final repo = context.read<LessonRepository>();
       await repo.deleteLesson(lesson.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Xoá bài học thành công!')),
-      );
+      CustomSnackBar.show(context, 'Xoá bài học thành công!');
       _fetchLessons();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi xoá: $e')),
-      );
+      CustomSnackBar.show(context, 'Lỗi khi xoá: $e', isError: true);
     }
   }
 
@@ -90,17 +89,22 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
       }
       _fetchLessons(); // Reload after toggle
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      CustomSnackBar.show(context, 'Lỗi: $e', isError: true);
     }
   }
 
   void _navigateToForm([Lesson? lesson]) async {
+    int? nextOrderIndex;
+    if (lesson == null) {
+      nextOrderIndex = _lessons.isEmpty 
+          ? 1 
+          : (_lessons.map((l) => l.orderIndex).reduce((a, b) => a > b ? a : b) + 1);
+    }
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminLessonFormScreen(topicId: widget.topic.id, lesson: lesson),
+        builder: (_) => AdminLessonFormScreen(topicId: widget.topic.id, lesson: lesson, nextOrderIndex: nextOrderIndex),
       ),
     );
     if (result == true) {
@@ -135,6 +139,31 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
   }
 
   Widget _buildBody() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Tìm kiếm bài học...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+            onChanged: (val) {
+              setState(() => _searchQuery = val.toLowerCase());
+            },
+          ),
+        ),
+        Expanded(
+          child: _buildList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildList() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -153,21 +182,27 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
         ),
       );
     }
-    if (_lessons.isEmpty) {
+
+    final filtered = _lessons.where((l) => 
+      l.title.toLowerCase().contains(_searchQuery)
+    ).toList();
+
+    if (filtered.isEmpty) {
       return const Center(child: Text('Chủ đề này chưa có bài học nào.'));
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _lessons.length,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final lesson = _lessons[index];
+        final lesson = filtered[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ExpansionTile(
+            shape: const Border(), // Removes top/bottom border when expanded
+            tilePadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             leading: lesson.thumbnailUrl != null && lesson.thumbnailUrl!.isNotEmpty
                 ? Image.network(
                     lesson.thumbnailUrl!,
@@ -185,11 +220,12 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 4),
                 Text(
                   '${lesson.lessonType ?? 'General'} | Order: ${lesson.orderIndex}',
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
@@ -204,31 +240,52 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                )
-              ],
-            ),
-            isThreeLine: true,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    lesson.isPublished ? Icons.visibility_off : Icons.visibility,
-                    color: lesson.isPublished ? Colors.grey : Colors.green,
-                  ),
-                  tooltip: lesson.isPublished ? 'Unpublish' : 'Publish',
-                  onPressed: () => _togglePublish(lesson),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.orange),
-                  onPressed: () => _navigateToForm(lesson),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _deleteLesson(lesson),
                 ),
               ],
             ),
+            children: [
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                child: OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  spacing: 8,
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.spellcheck_rounded, color: Colors.purple, size: 20),
+                      label: const Text('Từ vựng', style: TextStyle(color: Colors.purple)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AdminVocabularyListScreen(lesson: lesson),
+                          ),
+                        );
+                      },
+                    ),
+                    TextButton.icon(
+                      icon: Icon(
+                        lesson.isPublished ? Icons.visibility_off : Icons.visibility,
+                        color: lesson.isPublished ? Colors.grey : Colors.green,
+                        size: 20,
+                      ),
+                      label: Text(lesson.isPublished ? 'Ẩn' : 'Hiện', style: TextStyle(color: lesson.isPublished ? Colors.grey : Colors.green)),
+                      onPressed: () => _togglePublish(lesson),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
+                      label: const Text('Sửa', style: TextStyle(color: Colors.orange)),
+                      onPressed: () => _navigateToForm(lesson),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                      label: const Text('Xoá', style: TextStyle(color: Colors.red)),
+                      onPressed: () => _deleteLesson(lesson),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },

@@ -952,6 +952,7 @@ class MockTopicRepository extends _i1.Mock implements _i11.TopicRepository {
     String? description,
     String? iconUrl,
     int? orderIndex,
+    bool? isActive,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -963,6 +964,7 @@ class MockTopicRepository extends _i1.Mock implements _i11.TopicRepository {
             #description: description,
             #iconUrl: iconUrl,
             #orderIndex: orderIndex,
+            #isActive: isActive,
           },
         ),
         returnValue: _i9.Future<_i8.Topic>.value(_FakeTopic_7(
@@ -976,6 +978,7 @@ class MockTopicRepository extends _i1.Mock implements _i11.TopicRepository {
               #description: description,
               #iconUrl: iconUrl,
               #orderIndex: orderIndex,
+              #isActive: isActive,
             },
           ),
         )),

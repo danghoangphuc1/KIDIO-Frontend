@@ -5,6 +5,7 @@ import '../providers/child_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/kidio_models.dart';
 import '../widgets/parent_pin_dialogs.dart';
+import 'parent_dashboard_screen.dart';
 
 class ChildSelectionScreen extends StatefulWidget {
   const ChildSelectionScreen({super.key});
@@ -19,19 +20,31 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<ChildProvider>().loadChildren();
-      
-      // Kiểm tra xem đã có mã PIN phụ huynh chưa
-      final authProvider = context.read<AuthProvider>();
-      final hasPin = await authProvider.hasParentPin();
-      if (!hasPin && mounted) {
-        // Nếu chưa có, yêu cầu tạo mới
-        ParentPinDialogs.showCreatePinDialog(context);
-      }
     });
+  }
+
+  bool _pinChecked = false;
+
+  void _checkPinIfNeeded() {
+    if (_pinChecked) return;
+    
+    // Chỉ kiểm tra khi màn hình này đang là màn hình hiển thị trên cùng (không bị VerifyEmail đè lên)
+    if (ModalRoute.of(context)?.isCurrent == true) {
+      _pinChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final authProvider = context.read<AuthProvider>();
+        final hasPin = await authProvider.hasParentPin();
+        if (!hasPin && mounted) {
+          await ParentPinDialogs.showCreatePinDialog(context, dismissible: false);
+        }
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    _checkPinIfNeeded();
     final childProvider = context.watch<ChildProvider>();
 
     return Scaffold(
@@ -422,12 +435,12 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
                     TextFormField(
                       controller: ageController,
                       style: const TextStyle(fontWeight: FontWeight.bold),
-                      decoration: _buildInputDecor('Tuổi của bé (2 - 10)', Icons.cake_rounded),
+                      decoration: _buildInputDecor('Tuổi của bé (4 - 10)', Icons.cake_rounded),
                       keyboardType: TextInputType.number,
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Vui lòng nhập tuổi';
                         final age = int.tryParse(v);
-                        if (age == null || age < 2 || age > 10) return 'Bé từ 2 đến 10 tuổi';
+                        if (age == null || age < 4 || age > 10) return 'Bé từ 4 đến 10 tuổi';
                         return null;
                       },
                     ),
@@ -486,7 +499,10 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
     
     if (mounted) {
       if (!hasPin) {
-        ParentPinDialogs.showCreatePinDialog(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ParentDashboardScreen()),
+        );
       } else {
         ParentPinDialogs.showVerifyPinDialog(context);
       }

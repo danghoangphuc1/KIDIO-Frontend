@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../../utils/snackbar_utils.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'admin_topic_list_screen.dart';
+import 'admin_vocabulary_list_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -27,8 +29,28 @@ class AdminDashboardScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             tooltip: 'Đăng xuất',
-            onPressed: () {
-              authProvider.logout();
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Xác nhận đăng xuất'),
+                  content: const Text('Bạn có chắc chắn muốn đăng xuất không?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Hủy'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Đăng xuất'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                authProvider.logout();
+              }
             },
           ),
         ],
@@ -116,8 +138,11 @@ class AdminDashboardScreen extends StatelessWidget {
                     icon: Icons.spellcheck_rounded,
                     color: Colors.purple,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Tính năng Quản lý Từ vựng đang phát triển!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminVocabularyListScreen(),
+                        ),
                       );
                     },
                   ),
@@ -127,9 +152,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     icon: Icons.people_alt_rounded,
                     color: Colors.green,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Tính năng Quản lý User đang phát triển!')),
-                      );
+                      CustomSnackBar.show(context, 'Tính năng Quản lý User đang phát triển!');
                     },
                   ),
                   _buildMenuCard(
@@ -138,9 +161,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     icon: Icons.analytics_rounded,
                     color: Colors.blueAccent,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Tính năng Báo cáo đang phát triển!')),
-                      );
+                      CustomSnackBar.show(context, 'Tính năng Báo cáo đang phát triển!');
                     },
                   ),
                 ],
@@ -203,3 +224,4 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 }
+

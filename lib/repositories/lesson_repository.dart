@@ -27,6 +27,7 @@ class LessonRepository {
     String? thumbnailUrl,
     String? audioUrl,
     int? orderIndex,
+    String? contentJson,
   }) => _lessonApi.createLesson(
       title: title,
       topicId: topicId,
@@ -38,6 +39,7 @@ class LessonRepository {
       thumbnailUrl: thumbnailUrl,
       audioUrl: audioUrl,
       orderIndex: orderIndex,
+      contentJson: contentJson,
     );
 
   Future<Lesson> updateLesson({
@@ -51,6 +53,8 @@ class LessonRepository {
     String? thumbnailUrl,
     String? audioUrl,
     int? orderIndex,
+    String? contentJson,
+    bool? isPublished,
   }) => _lessonApi.updateLesson(
       lessonId: lessonId,
       title: title,
@@ -62,6 +66,8 @@ class LessonRepository {
       thumbnailUrl: thumbnailUrl,
       audioUrl: audioUrl,
       orderIndex: orderIndex,
+      contentJson: contentJson,
+      isPublished: isPublished,
     );
 
   Future<void> deleteLesson(String lessonId) => _lessonApi.deleteLesson(lessonId);

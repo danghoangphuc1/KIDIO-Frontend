@@ -32,12 +32,14 @@ class TopicRepository {
     String? description,
     String? iconUrl,
     int? orderIndex,
+    bool? isActive,
   }) => _topicApi.updateTopic(
       topicId: topicId,
       name: name,
       description: description,
       iconUrl: iconUrl,
       orderIndex: orderIndex,
+      isActive: isActive,
     );
 
   Future<void> deleteTopic(String topicId) => _topicApi.deleteTopic(topicId);

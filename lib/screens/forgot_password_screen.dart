@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/snackbar_utils.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -43,9 +44,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(authProvider.errorMessage ?? 'Có lỗi xảy ra')),
-          );
+          CustomSnackBar.show(context, authProvider.errorMessage ?? 'Có lỗi xảy ra', isError: true);
         }
       }
     }

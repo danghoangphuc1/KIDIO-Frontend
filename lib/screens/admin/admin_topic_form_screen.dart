@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../utils/snackbar_utils.dart';
 import 'package:provider/provider.dart';
 import '../../models/kidio_models.dart';
 import '../../repositories/topic_repository.dart';
 
 class AdminTopicFormScreen extends StatefulWidget {
   final Topic? topic; // If null, it's Create mode. Else, Edit mode.
+  final int? nextOrderIndex;
 
-  const AdminTopicFormScreen({super.key, this.topic});
+  const AdminTopicFormScreen({super.key, this.topic, this.nextOrderIndex});
 
   @override
   State<AdminTopicFormScreen> createState() => _AdminTopicFormScreenState();
@@ -15,6 +17,7 @@ class AdminTopicFormScreen extends StatefulWidget {
 class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isFetching = false;
 
   late TextEditingController _nameCtrl;
   late TextEditingController _descCtrl;
@@ -27,7 +30,39 @@ class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
     _nameCtrl = TextEditingController(text: widget.topic?.name ?? '');
     _descCtrl = TextEditingController(text: widget.topic?.description ?? '');
     _iconUrlCtrl = TextEditingController(text: widget.topic?.iconUrl ?? '');
-    _orderIndexCtrl = TextEditingController(text: widget.topic?.orderIndex.toString() ?? '0');
+    
+    String orderText = '';
+    if (widget.topic != null) {
+      orderText = widget.topic!.orderIndex?.toString() ?? '0';
+    } else if (widget.nextOrderIndex != null) {
+      orderText = widget.nextOrderIndex.toString();
+    } else {
+      orderText = '1';
+    }
+    _orderIndexCtrl = TextEditingController(text: orderText);
+
+    if (widget.topic != null) {
+      _fetchFullTopic(widget.topic!.id);
+    }
+  }
+
+  Future<void> _fetchFullTopic(String id) async {
+    setState(() => _isFetching = true);
+    try {
+      final repo = context.read<TopicRepository>();
+      final fullTopic = await repo.fetchTopicById(id);
+      if (!mounted) return;
+      setState(() {
+        _nameCtrl.text = fullTopic.name;
+        _descCtrl.text = fullTopic.description ?? '';
+        _iconUrlCtrl.text = fullTopic.iconUrl ?? '';
+        _orderIndexCtrl.text = fullTopic.orderIndex.toString();
+        _isFetching = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isFetching = false);
+    }
   }
 
   @override
@@ -56,9 +91,7 @@ class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
           iconUrl: _iconUrlCtrl.text.trim(),
           orderIndex: int.tryParse(_orderIndexCtrl.text),
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thêm chủ đề thành công!')),
-        );
+        CustomSnackBar.show(context, 'Thêm chủ đề thành công!');
       } else {
         // Update
         await repo.updateTopic(
@@ -67,19 +100,16 @@ class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
           description: _descCtrl.text.trim(),
           iconUrl: _iconUrlCtrl.text.trim(),
           orderIndex: int.tryParse(_orderIndexCtrl.text),
+          isActive: widget.topic!.isActive ?? true,
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cập nhật chủ đề thành công!')),
-        );
+        CustomSnackBar.show(context, 'Cập nhật chủ đề thành công!');
       }
       Navigator.pop(context, true); // Return true to indicate success
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Có lỗi xảy ra: $e')),
-      );
+      CustomSnackBar.showError(context, e, prefix: '');
     }
   }
 
@@ -101,10 +131,12 @@ class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF1A237E)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
+      body: _isFetching
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -187,3 +219,4 @@ class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
     );
   }
 }
+

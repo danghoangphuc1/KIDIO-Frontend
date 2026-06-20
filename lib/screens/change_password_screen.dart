@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/snackbar_utils.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -35,16 +36,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         confirmNewPassword: _confirmPasswordController.text,
       );
 
-      if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Thay đổi mật khẩu thành công!')),
-          );
+      if (success) {
+        if (mounted) {
+          CustomSnackBar.show(context, 'Đổi mật khẩu thành công!');
           Navigator.pop(context);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(authProvider.errorMessage ?? 'Thay đổi mật khẩu thất bại')),
-          );
+        }
+      } else {
+        if (mounted) {
+          CustomSnackBar.show(context, authProvider.errorMessage ?? 'Có lỗi xảy ra', isError: true);
         }
       }
     }

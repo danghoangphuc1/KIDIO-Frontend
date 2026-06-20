@@ -85,19 +85,23 @@ class VocabularyApi {
   Future<Vocabulary> createVocabulary({
     required String word,
     required String meaning,
+    required String lessonId,
     String? phoneticText,
     String? audioUrl,
     String? imageUrl,
     int? orderIndex,
+    String? exampleSentence,
   }) async {
     try {
       final response = await _dio.post('Vocabulary', data: {
         'word': word,
         'meaning': meaning,
+        'lessonId': lessonId,
         'phoneticText': phoneticText,
         'audioUrl': audioUrl,
         'imageUrl': imageUrl,
         'orderIndex': orderIndex,
+        'exampleSentence': exampleSentence,
       });
       return Vocabulary.fromJson(response.data['data']);
     } catch (e) {
@@ -113,6 +117,7 @@ class VocabularyApi {
     String? audioUrl,
     String? imageUrl,
     int? orderIndex,
+    String? exampleSentence,
   }) async {
     try {
       final response = await _dio.put('Vocabulary/$vocabId', data: {
@@ -122,6 +127,7 @@ class VocabularyApi {
         'audioUrl': audioUrl,
         'imageUrl': imageUrl,
         'orderIndex': orderIndex,
+        'exampleSentence': exampleSentence,
       });
       return Vocabulary.fromJson(response.data['data']);
     } catch (e) {

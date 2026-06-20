@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/auth_provider.dart';
 import 'register_screen.dart';
-import 'forgot_password_screen.dart';
+import '../screens/forgot_password_screen.dart';
+import '../utils/snackbar_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,9 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lỗi: Không nhận được ID Token.')),
-          );
+          CustomSnackBar.show(context, 'Lỗi: Không nhận được ID Token.', isError: true);
         }
       }
     } catch (error) {

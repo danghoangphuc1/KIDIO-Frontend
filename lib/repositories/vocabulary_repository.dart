@@ -20,17 +20,21 @@ class VocabularyRepository {
   Future<Vocabulary> createVocabulary({
     required String word,
     required String meaning,
+    required String lessonId,
     String? phoneticText,
     String? audioUrl,
     String? imageUrl,
     int? orderIndex,
+    String? exampleSentence,
   }) => _api.createVocabulary(
       word: word,
       meaning: meaning,
+      lessonId: lessonId,
       phoneticText: phoneticText,
       audioUrl: audioUrl,
       imageUrl: imageUrl,
       orderIndex: orderIndex,
+      exampleSentence: exampleSentence,
     );
 
   Future<Vocabulary> updateVocabulary({
@@ -41,6 +45,7 @@ class VocabularyRepository {
     String? audioUrl,
     String? imageUrl,
     int? orderIndex,
+    String? exampleSentence,
   }) => _api.updateVocabulary(
       vocabId: vocabId,
       word: word,
@@ -49,6 +54,7 @@ class VocabularyRepository {
       audioUrl: audioUrl,
       imageUrl: imageUrl,
       orderIndex: orderIndex,
+      exampleSentence: exampleSentence,
     );
 
   Future<void> deleteVocabulary(String vocabId) => _api.deleteVocabulary(vocabId);

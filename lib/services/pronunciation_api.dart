@@ -14,6 +14,9 @@ class PronunciationApi {
   }) async {
     try {
       String fileName = audioFile.path.split('/').last;
+      if (!fileName.toLowerCase().endsWith('.wav')) {
+        fileName = '${fileName.split('.').first}.wav';
+      }
       FormData formData = FormData.fromMap({
         'VocabularyId': vocabularyId,
         if (lessonId != null) 'LessonId': lessonId,

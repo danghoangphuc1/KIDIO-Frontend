@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/kidio_models.dart';
@@ -13,6 +14,7 @@ import '../local/cache_service.dart';
 import '../api/api_client.dart';
 import '../repositories/vocabulary_repository.dart';
 import 'vocabulary_quiz_screen.dart';
+import '../utils/snackbar_utils.dart';
 
 class LessonDetailScreen extends StatefulWidget {
   final String lessonId;
@@ -32,6 +34,9 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   bool _isPlaying = false;
   bool _isSynthesizingLesson = false;
   bool _isCompleted = false;
+  bool _hasCompletedQuiz = false;
+  bool _isTranslating = false;
+  String? _translatedText;
   late DateTime _startTime;
 
   @override
@@ -84,34 +89,46 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
 
 
 
-  Future<void> _readWholeLesson() async {
+  Future<void> _readWholeLesson(Lesson lesson, String text) async {
     if (_isPlaying) {
       await _audioPlayer.stop();
       return;
     }
     setState(() => _isSynthesizingLesson = true);
     try {
-      final ttsRepo = context.read<TtsRepository>();
-      final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
-
-      debugPrint("Đang gọi API tổng hợp cả bài học...");
-      final response = await ttsRepo.synthesizeLesson(widget.lessonId);
-      debugPrint("API trả về: ${response.audioUrl}");
-      
-      String fullUrl = response.audioUrl.startsWith('http') ? response.audioUrl : '${dioBaseUrl.replaceAll('/api/', '')}${response.audioUrl}';
-      
-      // Khắc phục lỗi SSL trên thiết bị Android khi dùng IP local
-      if (fullUrl.contains('192.168.') || fullUrl.contains('10.')) {
-        fullUrl = fullUrl.replaceFirst('https://', 'http://').replaceFirst(':7014', ':5109');
-      }
+      final fullUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${Uri.encodeComponent(text)}';
       
       debugPrint("Bắt đầu phát âm thanh: $fullUrl");
       await _audioPlayer.play(UrlSource(fullUrl));
     } catch (e) {
       debugPrint("Lỗi TTS: $e");
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi tải bài đọc: $e')));
+      if (mounted) CustomSnackBar.show(context, 'Lỗi tải bài đọc: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isSynthesizingLesson = false);
+    }
+  }
+
+  Future<void> _translateContent(String text) async {
+    setState(() => _isTranslating = true);
+    try {
+      final dio = context.read<ApiClient>().dio;
+      // You can use a free translate API or create a new Dio instance for external API
+      final extDio = Dio();
+      final response = await extDio.get('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${Uri.encodeComponent(text)}');
+      if (response.data != null && response.data is List && response.data.isNotEmpty) {
+        final List translations = response.data[0];
+        String result = '';
+        for (var i = 0; i < translations.length; i++) {
+          result += translations[i][0];
+        }
+        if (mounted) {
+          setState(() => _translatedText = result);
+        }
+      }
+    } catch (e) {
+      if (mounted) CustomSnackBar.show(context, 'Lỗi dịch thuật. Vui lòng thử lại!', isError: true);
+    } finally {
+      if (mounted) setState(() => _isTranslating = false);
     }
   }
 
@@ -141,7 +158,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         if (progress.newAchievements != null && progress.newAchievements!.isNotEmpty) {
           await _showAchievementCelebration(progress.newAchievements!);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Học giỏi quá! Đã lưu kết quả.')));
+          CustomSnackBar.show(context, 'Học giỏi quá! Đã lưu kết quả.');
         }
         Navigator.pop(context);
       }
@@ -195,17 +212,6 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Bắt đầu bài học', style: TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.w900)),
-        actions: [
-          if (_isSynthesizingLesson)
-            const Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-          else
-            IconButton(
-              icon: Icon(_isPlaying ? Icons.stop_circle_rounded : Icons.campaign_rounded, color: Colors.blueAccent, size: 28),
-              onPressed: _readWholeLesson,
-              tooltip: 'Nghe giáo viên đọc cả bài',
-            ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: FutureBuilder<Lesson>(
         future: _lessonFuture,
@@ -273,7 +279,40 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(children: [Icon(Icons.lightbulb_rounded, color: Colors.amber, size: 22), SizedBox(width: 8), Text('NỘI DUNG', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.blueGrey))]),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.lightbulb_rounded, color: Colors.amber, size: 22), 
+                                SizedBox(width: 8), 
+                                Text('NỘI DUNG', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.blueGrey))
+                              ]
+                            ),
+                            Row(
+                              children: [
+                                if (_isTranslating)
+                                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                else
+                                  TextButton.icon(
+                                    onPressed: () => _translateContent(plainTextContent),
+                                    icon: const Icon(Icons.g_translate, color: Colors.teal),
+                                    label: const Text('Dịch', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.w900)),
+                                  ),
+                                const SizedBox(width: 8),
+                                if (_isSynthesizingLesson)
+                                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                else
+                                  IconButton(
+                                    icon: Icon(_isPlaying ? Icons.stop_circle_rounded : Icons.volume_up_rounded, color: Colors.blueAccent, size: 28),
+                                    onPressed: () => _readWholeLesson(lesson, plainTextContent),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 12),
                         Container(
                           width: double.infinity,
@@ -283,7 +322,19 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(color: Colors.blue.shade100, width: 2),
                           ),
-                          child: Text(plainTextContent, style: const TextStyle(fontSize: 19, height: 1.6, color: Colors.black87, fontWeight: FontWeight.w500)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(plainTextContent, style: const TextStyle(fontSize: 19, height: 1.6, color: Colors.black87, fontWeight: FontWeight.w500)),
+                              if (_translatedText != null) ...[
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Divider(),
+                                ),
+                                Text(_translatedText!, style: const TextStyle(fontSize: 18, height: 1.6, color: Colors.teal, fontStyle: FontStyle.italic)),
+                              ]
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -307,8 +358,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           width: double.infinity,
                           height: 80,
                           child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => VocabularyQuizScreen(
@@ -317,6 +368,10 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                   ),
                                 ),
                               );
+                              if (result == true && mounted) {
+                                setState(() => _hasCompletedQuiz = true);
+                                await _finishLesson();
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.purple.shade50,
@@ -358,27 +413,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
           );
         },
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: _isSubmitting 
-          ? const CircularProgressIndicator()
-          : SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: FloatingActionButton.extended(
-                onPressed: _finishLesson,
-                elevation: 4,
-                backgroundColor: _isCompleted ? Colors.blueAccent : Colors.green.shade600,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                label: Text(
-                  _isCompleted ? 'QUAY LẠI' : 'CON ĐÃ HỌC XONG!',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
-                ),
-                icon: Icon(_isCompleted ? Icons.arrow_back_rounded : Icons.check_circle_rounded, size: 28),
-              ),
-            ),
-      ),
+
     );
   }
 

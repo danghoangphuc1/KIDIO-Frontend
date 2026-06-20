@@ -22,7 +22,14 @@ class AuthProvider extends ChangeNotifier {
     final token = await _repository.tryRestoreSession();
     if (token != null) {
       try {
-        _currentUser = await _repository.getCurrentUser();
+        final user = await _repository.getCurrentUser();
+        
+        // Prevent race conditions if the user logged out or changed session
+        // while we were waiting for the slow API to respond.
+        final currentToken = await _repository.tryRestoreSession();
+        if (currentToken != token) return;
+        
+        _currentUser = user;
         _isAuthenticated = true;
       } catch (e) {
         _isAuthenticated = false;

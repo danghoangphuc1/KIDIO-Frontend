@@ -1,56 +1,57 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../utils/snackbar_utils.dart';
 import 'package:provider/provider.dart';
 import '../../models/kidio_models.dart';
-import '../../repositories/topic_repository.dart';
-import 'admin_topic_form_screen.dart';
-import 'admin_lesson_list_screen.dart';
+import '../../repositories/vocabulary_repository.dart';
+import 'admin_vocabulary_form_screen.dart';
 
-class AdminTopicListScreen extends StatefulWidget {
-  const AdminTopicListScreen({super.key});
+class AdminVocabularyListScreen extends StatefulWidget {
+  final Lesson? lesson;
+
+  const AdminVocabularyListScreen({super.key, this.lesson});
 
   @override
-  State<AdminTopicListScreen> createState() => _AdminTopicListScreenState();
+  State<AdminVocabularyListScreen> createState() => _AdminVocabularyListScreenState();
 }
 
-class _AdminTopicListScreenState extends State<AdminTopicListScreen> {
+class _AdminVocabularyListScreenState extends State<AdminVocabularyListScreen> {
   bool _isLoading = true;
-  List<Topic> _topics = [];
+  List<Vocabulary> _vocabularies = [];
   String? _errorMessage;
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchTopics();
+    _fetchVocabularies();
   }
 
-  Future<void> _fetchTopics() async {
+  Future<void> _fetchVocabularies() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      final repo = context.read<TopicRepository>();
-      final result = await repo.fetchTopics(pageSize: 100);
+      final repo = context.read<VocabularyRepository>();
+      final result = await repo.getPaged(pageNumber: 1, pageSize: 100, lessonId: widget.lesson?.id);
       setState(() {
-        _topics = result.items;
+        _vocabularies = result.items ?? [];
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Lỗi tải danh sách chủ đề: $e';
+        _errorMessage = 'Lỗi tải danh sách từ vựng: $e';
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _deleteTopic(Topic topic) async {
+  Future<void> _deleteVocabulary(Vocabulary vocab) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xác nhận xoá'),
-        content: Text('Bạn có chắc chắn muốn xoá chủ đề "${topic.name}" không?'),
+        content: Text('Bạn có chắc chắn muốn xoá từ "${vocab.word}" không?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -68,24 +69,31 @@ class _AdminTopicListScreenState extends State<AdminTopicListScreen> {
     if (confirm != true || !mounted) return;
 
     try {
-      final repo = context.read<TopicRepository>();
-      await repo.deleteTopic(topic.id);
-      CustomSnackBar.show(context, 'Xoá chủ đề thành công!');
-      _fetchTopics();
+      final repo = context.read<VocabularyRepository>();
+      await repo.deleteVocabulary(vocab.id);
+      CustomSnackBar.show(context, 'Xoá từ vựng thành công!');
+      _fetchVocabularies();
     } catch (e) {
       CustomSnackBar.show(context, 'Lỗi khi xoá: $e', isError: true);
     }
   }
 
-  void _navigateToForm([Topic? topic]) async {
+  void _navigateToForm([Vocabulary? vocab]) async {
+    int? nextOrderIndex;
+    if (vocab == null) {
+      nextOrderIndex = _vocabularies.isEmpty 
+          ? 1 
+          : (_vocabularies.map((v) => v.orderIndex ?? 0).reduce((a, b) => a > b ? a : b) + 1);
+    }
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminTopicFormScreen(topic: topic),
+        builder: (_) => AdminVocabularyFormScreen(vocabulary: vocab, lesson: widget.lesson, nextOrderIndex: nextOrderIndex),
       ),
     );
     if (result == true) {
-      _fetchTopics();
+      _fetchVocabularies();
     }
   }
 
@@ -94,11 +102,12 @@ class _AdminTopicListScreenState extends State<AdminTopicListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBFF),
       appBar: AppBar(
-        title: const Text(
-          'Quản lý Chủ đề',
-          style: TextStyle(
+        title: Text(
+          widget.lesson != null ? 'Từ vựng: ${widget.lesson!.title}' : 'Quản lý Từ vựng',
+          style: const TextStyle(
             color: Color(0xFF1A237E),
             fontWeight: FontWeight.w900,
+            fontSize: 18,
           ),
         ),
         backgroundColor: Colors.white,
@@ -107,7 +116,7 @@ class _AdminTopicListScreenState extends State<AdminTopicListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToForm(),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: Colors.purple,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _buildBody(),
@@ -121,7 +130,7 @@ class _AdminTopicListScreenState extends State<AdminTopicListScreen> {
           padding: const EdgeInsets.all(16.0),
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Tìm kiếm chủ đề...',
+              hintText: 'Tìm kiếm từ vựng...',
               prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               filled: true,
@@ -151,7 +160,7 @@ class _AdminTopicListScreenState extends State<AdminTopicListScreen> {
             Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _fetchTopics,
+              onPressed: _fetchVocabularies,
               child: const Text('Thử lại'),
             ),
           ],
@@ -159,63 +168,69 @@ class _AdminTopicListScreenState extends State<AdminTopicListScreen> {
       );
     }
 
-    final filtered = _topics.where((t) => 
-      t.name.toLowerCase().contains(_searchQuery)
+    final filtered = _vocabularies.where((v) => 
+      v.word.toLowerCase().contains(_searchQuery) ||
+      v.meaning.toLowerCase().contains(_searchQuery)
     ).toList();
 
     if (filtered.isEmpty) {
-      return const Center(child: Text('Không tìm thấy chủ đề nào.'));
+      return const Center(child: Text('Không tìm thấy từ vựng nào.'));
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final topic = filtered[index];
+        final vocab = filtered[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: topic.iconUrl != null && topic.iconUrl!.isNotEmpty
+            leading: vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty
                 ? Image.network(
-                    topic.iconUrl!,
+                    vocab.imageUrl!,
                     width: 48,
                     height: 48,
+                    fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
+                        const Icon(Icons.image, size: 48, color: Colors.purple),
                   )
-                : const Icon(Icons.topic, size: 48, color: Colors.blueAccent),
+                : const Icon(Icons.spellcheck_rounded, size: 48, color: Colors.purple),
             title: Text(
-              topic.name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              vocab.word,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.purple),
             ),
-            subtitle: Text(
-              'Lessons: ${topic.totalLessons ?? 0} | Order: ${topic.orderIndex}',
-              style: TextStyle(color: Colors.grey.shade600),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty)
+                  Text(
+                    '/${vocab.phoneticText}/',
+                    style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  vocab.meaning,
+                  style: const TextStyle(fontSize: 15),
+                ),
+              ],
             ),
+            isThreeLine: true,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.orange),
-                  onPressed: () => _navigateToForm(topic),
+                  onPressed: () => _navigateToForm(vocab),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _deleteTopic(topic),
+                  onPressed: () => _deleteVocabulary(vocab),
                 ),
               ],
             ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AdminLessonListScreen(topic: topic),
-                ),
-              );
-            },
           ),
         );
       },
