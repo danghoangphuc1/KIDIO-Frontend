@@ -18,12 +18,7 @@ class ApiClient {
   // - Android Emulator: connects to 10.0.2.2 (special loopback for emulator).
   // - iOS Simulator / Desktop: connects to localhost.
   static String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://${Uri.base.host}:5109/api/';
-    }
-    return Platform.isAndroid 
-        ? 'http://10.0.2.2:5109/api/' 
-        : 'http://localhost:5109/api/';
+    return 'https://kidio-be.onrender.com/api/';
   }
   Future<bool> Function()? onRefreshToken;
 
