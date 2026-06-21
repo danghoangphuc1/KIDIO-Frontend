@@ -22,9 +22,9 @@ class ApiClient {
     if (envUrl.isNotEmpty) {
       return envUrl;
     }
-    // Temporarily calling local API instead of Render because Render free tier blocks SMTP ports
-    return 'http://192.168.88.147:5109/api/';
-    // return 'https://kidio-be.onrender.com/api/';
+    // Production Render API endpoint
+    return 'https://kidio-be.onrender.com/api/';
+    // return 'http://localhost:5109/api/';
   }
   Future<bool> Function()? onRefreshToken;
 
