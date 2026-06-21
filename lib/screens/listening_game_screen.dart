@@ -221,7 +221,7 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
   }
 
   void _showGameComplete() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -300,7 +300,10 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
                       ).animate().scale(delay: 400.ms),
                       const SizedBox(height: 48),
                       GestureDetector(
-                        onTap: () => Navigator.pop(context, true),
+                        onTap: () {
+                          Navigator.pop(context); // pop completion screen
+                          Navigator.pop(context, true); // return to lesson detail screen
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
                           decoration: BoxDecoration(
@@ -475,7 +478,7 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
                       crossAxisCount: 2,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.9,
+                      childAspectRatio: 0.75,
                     ),
                     itemBuilder: (context, index) {
                       final option = round.options[index];

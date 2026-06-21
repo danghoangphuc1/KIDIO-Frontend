@@ -11,6 +11,7 @@ import '../models/kidio_models.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
 import '../providers/pronunciation_provider.dart';
+import '../providers/child_provider.dart';
 
 class VocabularyQuizScreen extends StatefulWidget {
   final List<Vocabulary> vocabularies;
@@ -52,9 +53,6 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
   final Set<String> _wrongAnswers = {};
   bool _isAudioPlaying = false;
 
-  final _audioRecorder = AudioRecorder();
-  bool _isRecording = false;
-
   @override
   void initState() {
     super.initState();
@@ -64,192 +62,9 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
   @override
   void dispose() {
     _audioPlayer.dispose();
-    _audioRecorder.dispose();
     super.dispose();
   }
 
-  Future<void> _startRecording() async {
-    try {
-      if (await Permission.microphone.request().isGranted) {
-        final directory = await getApplicationDocumentsDirectory();
-        final path = '${directory.path}/pronunciation_${DateTime.now().millisecondsSinceEpoch}.wav';
-        await _audioRecorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.wav,
-            sampleRate: 16000,
-            numChannels: 1,
-          ),
-          path: path,
-        );
-        setState(() {
-          _isRecording = true;
-        });
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vui lòng cấp quyền Micro để sử dụng tính năng này.')),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error starting record: $e');
-    }
-  }
-
-  Future<void> _stopRecordingAndSubmit(String vocabularyId) async {
-    try {
-      final path = await _audioRecorder.stop();
-      setState(() => _isRecording = false);
-      if (path != null && mounted) {
-        final file = File(path);
-        if (await file.exists()) {
-          _showScoringDialog();
-
-          await context.read<PronunciationProvider>().submitPronunciation(
-                vocabularyId: vocabularyId,
-                audioFile: file,
-                lessonId: widget.lessonId,
-              );
-
-          if (mounted) {
-            Navigator.pop(context); // Close loading dialog
-            final score = context.read<PronunciationProvider>().lastScore;
-            if (score != null) {
-              _showScoreResultDialog(score);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Không thể chấm điểm: ${context.read<PronunciationProvider>().errorMessage}',
-                  ),
-                ),
-              );
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error stopping record: $e');
-      setState(() => _isRecording = false);
-    }
-  }
-
-  void _showScoringDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: Colors.purpleAccent),
-            const SizedBox(height: 20),
-            const Text(
-              'AI đang nghe và chấm điểm...',
-              style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showScoreResultDialog(PronunciationScore score) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        title: const Center(
-          child: Text(
-            'Kết quả phát âm 🎤',
-            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.purple),
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              score.overallScore >= 80
-                  ? 'Tuyệt vời! 🌟'
-                  : (score.overallScore >= 50 ? 'Khá tốt! 👍' : 'Cần cố gắng thêm! 💪'),
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: score.overallScore >= 80 ? Colors.green : Colors.orange,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Tổng điểm: ${score.overallScore.toInt()}/100',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
-            ),
-            const SizedBox(height: 12),
-            _buildScoreProgressRow('Độ chính xác', score.accuracyScore),
-            _buildScoreProgressRow('Độ lưu loát', score.fluencyScore),
-            _buildScoreProgressRow('Độ hoàn thiện', score.completenessScore),
-          ],
-        ),
-        actions: [
-          Center(
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purpleAccent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-              ),
-              child: const Text(
-                'Đóng',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScoreProgressRow(String label, int score) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 90,
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: score / 100,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: score >= 60 ? Colors.green : Colors.orange,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$score',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF102D54)),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _generateQuestions() {
     final random = Random();
@@ -375,8 +190,8 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     }
   }
 
-  void _showCompletionDialog() {
-    Navigator.pushReplacement(
+  Future<void> _showCompletionDialog() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -422,9 +237,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                           .shake(),
                       const SizedBox(height: 48),
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context, true); // Return true to mark completed
-                        },
+                        onTap: () => Navigator.pop(context),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
                           decoration: BoxDecoration(
@@ -453,6 +266,10 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
         ),
       ),
     );
+
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   @override
@@ -496,12 +313,17 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                       icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Text(
-                      'Question ${_currentIndex < _originalQuestionCount ? _currentIndex + 1 : "Retry"} / $_originalQuestionCount',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF102D54),
+                    Expanded(
+                      child: Text(
+                        'Question ${_currentIndex < _originalQuestionCount ? _currentIndex + 1 : "Retry"} / $_originalQuestionCount',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF102D54),
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Container(
@@ -639,39 +461,8 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                                           customAudioUrl: currentQ.vocabulary.audioUrl,
                                         ),
                                       ),
-                                const SizedBox(width: 24),
-                                GestureDetector(
-                                  onTap: () {
-                                    if (_isRecording) {
-                                      _stopRecordingAndSubmit(currentQ.vocabulary.id);
-                                    } else {
-                                      _startRecording();
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _isRecording ? Colors.red.shade100 : Colors.purple.shade50,
-                                      boxShadow: _isRecording
-                                          ? [
-                                              BoxShadow(
-                                                color: Colors.red.withOpacity(0.4),
-                                                blurRadius: 10,
-                                                spreadRadius: 2,
-                                              )
-                                            ]
-                                          : [],
-                                    ),
-                                    child: Icon(
-                                      _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                                      size: 36,
-                                      color: _isRecording ? Colors.red : Colors.purple,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                           const SizedBox(height: 24),
 
                           // Option buttons list

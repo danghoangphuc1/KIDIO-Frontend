@@ -233,13 +233,15 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> with TickerPr
             children: [
               const Text('🎭', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
-              Text(
-                'Chọn bạn đồng hành Pokemon',
-                style: TextStyle(
-                  fontFamily: Theme.of(context).textTheme.titleLarge?.fontFamily,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF1E3A8A),
+              Expanded(
+                child: Text(
+                  'Chọn bạn đồng hành Pokemon',
+                  style: TextStyle(
+                    fontFamily: Theme.of(context).textTheme.titleLarge?.fontFamily,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF1E3A8A),
+                  ),
                 ),
               ),
             ],

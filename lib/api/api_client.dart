@@ -23,7 +23,7 @@ class ApiClient {
       return envUrl;
     }
     // Temporarily calling local API instead of Render because Render free tier blocks SMTP ports
-    return 'http://localhost:5109/api/';
+    return 'http://192.168.88.147:5109/api/';
     // return 'https://kidio-be.onrender.com/api/';
   }
   Future<bool> Function()? onRefreshToken;
@@ -55,7 +55,8 @@ class ApiClient {
 
     _dio.interceptors.add(InterceptorsWrapper(
       onError: (DioException e, handler) async {
-        if (e.response?.statusCode == 401 && onRefreshToken != null) {
+        final path = e.requestOptions.path.toLowerCase();
+        if (e.response?.statusCode == 401 && onRefreshToken != null && !path.contains('refresh') && !path.contains('login')) {
           final success = await onRefreshToken!();
           if (success) {
             final options = e.requestOptions;

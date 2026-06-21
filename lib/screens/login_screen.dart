@@ -227,10 +227,42 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: Colors.red.shade200),
                               ),
-                              child: Text(
-                                authProvider.errorMessage!,
-                                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    authProvider.errorMessage!,
+                                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (authProvider.errorMessage!.toLowerCase().contains('verified') || 
+                                      authProvider.errorMessage!.toLowerCase().contains('xác thực'))
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          final email = _emailController.text.trim();
+                                          if (email.isEmpty) {
+                                            CustomSnackBar.show(context, 'Vui lòng nhập Email trước khi gửi lại!', isError: true);
+                                            return;
+                                          }
+                                          final success = await authProvider.resendVerification(email);
+                                          if (success && mounted) {
+                                            CustomSnackBar.show(context, 'Đã gửi lại Email xác thực thành công. Vui lòng kiểm tra hộp thư!', isError: false);
+                                          }
+                                        },
+                                        child: const Text(
+                                          'Chưa nhận được? Gửi lại Email xác thực',
+                                          style: TextStyle(
+                                            color: Color(0xFF0877F2),
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13,
+                                            decoration: TextDecoration.underline,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
 
@@ -406,8 +438,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 32),
 
                     // Decorative bouncing emojis (Row of flowers & stars)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 4,
+                      runSpacing: 4,
                       children: ["🌸", "⭐", "🌺", "✨", "🌷", "🌸", "⭐", "🌼", "🌺", "✨", "🌸"]
                           .asMap()
                           .entries
