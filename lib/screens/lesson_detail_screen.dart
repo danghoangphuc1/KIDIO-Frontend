@@ -12,6 +12,7 @@ import '../providers/progress_provider.dart';
 import '../providers/pronunciation_provider.dart';
 import '../utils/content_parser.dart';
 import '../local/cache_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../api/api_client.dart';
 import '../repositories/vocabulary_repository.dart';
 import 'vocabulary_quiz_screen.dart';
@@ -99,6 +100,18 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
               _pronCompleted = true;
               _quizCompleted = true;
               _bossCompleted = true;
+            } else {
+              // Load from local Hive cache so progress isn't lost if they exit and return
+              try {
+                final box = Hive.box('kidio_cache');
+                _vocabCompleted = box.get('lesson_${widget.lessonId}_vocab', defaultValue: false);
+                _listeningCompleted = box.get('lesson_${widget.lessonId}_listening', defaultValue: false);
+                _pronCompleted = box.get('lesson_${widget.lessonId}_pron', defaultValue: false);
+                _quizCompleted = box.get('lesson_${widget.lessonId}_quiz', defaultValue: false);
+                _bossCompleted = box.get('lesson_${widget.lessonId}_boss', defaultValue: false);
+              } catch (e) {
+                debugPrint("Error loading local progress: $e");
+              }
             }
           });
         }
@@ -478,6 +491,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _vocabCompleted = true);
+                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_vocab', true); } catch (_) {}
                           }
                         },
                       ),
@@ -503,6 +517,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _listeningCompleted = true);
+                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_listening', true); } catch (_) {}
                           }
                         },
                       ),
@@ -528,6 +543,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _pronCompleted = true);
+                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_pron', true); } catch (_) {}
                           }
                         },
                       ),
@@ -553,6 +569,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _quizCompleted = true);
+                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_quiz', true); } catch (_) {}
                           }
                         },
                       ),
@@ -578,6 +595,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _bossCompleted = true);
+                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_boss', true); } catch (_) {}
                             await _finishLesson();
                           }
                         },
@@ -646,12 +664,15 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
             ),
             title: Row(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF102D54),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102D54),
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),

@@ -22,6 +22,7 @@ class ParentDashboardScreen extends StatefulWidget {
 class _ParentDashboardScreenState extends State<ParentDashboardScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _selectedChildIdForLog;
+  bool _hasPin = false;
 
   @override
   void initState() {
@@ -32,7 +33,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
     });
   }
 
-  void _reloadData() {
+  Future<void> _reloadData() async {
     context.read<DashboardProvider>().loadOverview();
     context.read<ChildProvider>().loadChildren();
     
@@ -40,6 +41,15 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
     if (children.isNotEmpty) {
       _selectedChildIdForLog ??= children.first.id;
       context.read<ProgressProvider>().loadChildProgress(_selectedChildIdForLog!);
+    }
+
+    if (mounted) {
+      final hasPin = await context.read<AuthProvider>().hasParentPin();
+      if (mounted) {
+        setState(() {
+          _hasPin = hasPin;
+        });
+      }
     }
   }
 
@@ -79,12 +89,26 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                  final created = await import_parent_pin_dialogs.ParentPinDialogs.showCreatePinDialog(context);
                  if (created == true && mounted) {
                    CustomSnackBar.show(context, 'Đổi mã PIN thành công');
+                   _reloadData();
                  }
-              } else if (value == 'disable_pin') {
+              } else if (value == 'toggle_pin') {
                  try {
-                   await context.read<AuthProvider>().setParentPin('');
-                   if (mounted) {
-                     CustomSnackBar.show(context, 'Đã vô hiệu hóa mã PIN Phụ huynh');
+                   if (_hasPin) {
+                     // Disable PIN
+                     final success = await context.read<AuthProvider>().setParentPin('');
+                     if (success && mounted) {
+                       CustomSnackBar.show(context, 'Đã vô hiệu hóa mã PIN Phụ huynh');
+                       setState(() => _hasPin = false);
+                     } else if (mounted) {
+                       CustomSnackBar.show(context, 'Lỗi: ${context.read<AuthProvider>().errorMessage}', isError: true);
+                     }
+                   } else {
+                     // Enable PIN
+                     final created = await import_parent_pin_dialogs.ParentPinDialogs.showCreatePinDialog(context);
+                     if (created == true && mounted) {
+                       CustomSnackBar.show(context, 'Đã bật mã PIN Phụ huynh');
+                       setState(() => _hasPin = true);
+                     }
                    }
                  } catch (e) {
                    if (mounted) {
@@ -100,7 +124,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'change_pin', child: Text('Thay đổi mã PIN')),
-              const PopupMenuItem(value: 'disable_pin', child: Text('Vô hiệu hóa mã PIN')),
+              PopupMenuItem(value: 'toggle_pin', child: Text(_hasPin ? 'Vô hiệu hóa mã PIN' : 'Bật mã PIN')),
               const PopupMenuDivider(),
               const PopupMenuItem(value: 'change_password', child: Text('Đổi mật khẩu')),
             ],

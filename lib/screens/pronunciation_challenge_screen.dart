@@ -8,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/kidio_models.dart';
 import '../providers/pronunciation_provider.dart';
+import '../providers/child_provider.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
 
@@ -124,8 +125,19 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
 
           final pronProvider = context.read<PronunciationProvider>();
           final vocab = widget.vocabularies[_currentIndex];
+          final childId = context.read<ChildProvider>().selectedChild?.id;
+
+          if (childId == null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Không tìm thấy thông tin bé đang học')),
+              );
+            }
+            return;
+          }
 
           await pronProvider.submitPronunciation(
+            childId: childId,
             vocabularyId: vocab.id,
             audioFile: file,
             lessonId: widget.lessonId,
@@ -138,7 +150,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
               setState(() {
                 _currentScore = score;
               });
-              _playTtsFeedback(score.overallScore >= 60);
+              _playTtsFeedback(score.overallScore);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Lỗi: ${pronProvider.errorMessage ?? "Chưa có điểm"}')),
@@ -153,9 +165,12 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
     }
   }
 
-  Future<void> _playTtsFeedback(bool success) async {
+  Future<void> _playTtsFeedback(int score) async {
     try {
-      if (success) {
+      if (score > 90) {
+        await _audioPlayer.play(UrlSource(
+            'https://dict.youdao.com/dictvoice?audio=excellent&type=1'));
+      } else if (score >= 60) {
         await _audioPlayer.play(UrlSource(
             'https://dict.youdao.com/dictvoice?audio=great+job&type=1'));
       } else {
@@ -209,7 +224,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
   }
 
   void _showChallengeComplete() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -254,7 +269,10 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                           .shake(),
                       const SizedBox(height: 48),
                       GestureDetector(
-                        onTap: () => Navigator.pop(context, true),
+                        onTap: () {
+                          Navigator.pop(context); // pop completion screen
+                          Navigator.pop(context, true); // return to lesson detail screen
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
                           decoration: BoxDecoration(
@@ -506,82 +524,87 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                                   ),
                                 ).animate().scale(duration: 400.ms),
 
-                                const SizedBox(width: 24),
-                                // Sub stats
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildScoreRow('Accuracy', _currentScore!.accuracyScore),
-                                    _buildScoreRow('Fluency', _currentScore!.fluencyScore),
-                                    _buildScoreRow('Complete', _currentScore!.completenessScore),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Feedback message
-                            Text(
-                              _currentScore!.feedback.isNotEmpty
-                                  ? _currentScore!.feedback
-                                  : (_currentScore!.overallScore >= 80
-                                      ? 'Excellent pronunciation! 🌟'
-                                      : 'Good job! Keep practicing! 👍'),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF102D54),
+                                  const SizedBox(width: 16),
+                                  // Sub stats
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildScoreRow('Accuracy', _currentScore!.accuracyScore),
+                                        _buildScoreRow('Fluency', _currentScore!.fluencyScore),
+                                        _buildScoreRow('Complete', _currentScore!.completenessScore),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 24),
+                              const SizedBox(height: 20),
 
-                            // Retry or Next buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _currentScore = null;
-                                    });
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.pinkAccent,
-                                    side: const BorderSide(color: Colors.pinkAccent, width: 2),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                  ),
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  label: const Text('NÓI LẠI', style: TextStyle(fontWeight: FontWeight.w900)),
+                              // Feedback message
+                              Text(
+                                _currentScore!.feedback.isNotEmpty
+                                    ? _currentScore!.feedback
+                                    : (_currentScore!.overallScore >= 80
+                                        ? 'Excellent pronunciation! 🌟'
+                                        : 'Good job! Keep practicing! 👍'),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF102D54),
                                 ),
-                                const SizedBox(width: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _nextWord,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.pinkAccent,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                    elevation: 2,
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Retry or Next buttons
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        setState(() {
+                                          _currentScore = null;
+                                        });
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: Colors.pinkAccent,
+                                        side: const BorderSide(color: Colors.pinkAccent, width: 2),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                      ),
+                                      icon: const Icon(Icons.refresh_rounded, size: 20),
+                                      label: const Text('NÓI LẠI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                                    ),
                                   ),
-                                  icon: const Icon(Icons.arrow_forward_rounded),
-                                  label: const Text('TIẾP THEO', style: TextStyle(fontWeight: FontWeight.w900)),
-                                ),
-                              ],
-                            ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _nextWord,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.pinkAccent,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        elevation: 2,
+                                      ),
+                                      icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                                      label: const Text('TIẾP TỤC', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -591,26 +614,27 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
       child: Row(
         children: [
           SizedBox(
-            width: 80,
+            width: 65,
             child: Text(
               label,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
             ),
           ),
-          Container(
-            width: 80,
-            height: 6,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: score / 100,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: score >= 60 ? Colors.green : Colors.orange,
-                  borderRadius: BorderRadius.circular(3),
+          Expanded(
+            child: Container(
+              height: 6,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: score / 100,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: score >= 60 ? Colors.green : Colors.orange,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
             ),

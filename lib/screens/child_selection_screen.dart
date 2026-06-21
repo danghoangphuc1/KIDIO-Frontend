@@ -313,7 +313,6 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      height: 80,
       child: CustomPaint(
         painter: DashedBorderPainter(
           color: const Color(0xFF38BDF8),
@@ -331,7 +330,7 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
           },
           borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
             child: Row(
               children: [
                 // Plus icon in blue square

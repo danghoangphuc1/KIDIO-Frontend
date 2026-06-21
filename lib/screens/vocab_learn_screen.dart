@@ -100,7 +100,7 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
   }
 
   void _showCompletionScreen() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -140,15 +140,17 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
                       ).animate().fade(delay: 300.ms).slideY(begin: 0.2),
                       const SizedBox(height: 32),
                       // Floating balloons/stars emoji representation
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
                         children: ['🎈', '🎉', '🏆', '🎉', '🎈']
                             .asMap()
                             .entries
                             .map(
                               (entry) => Text(
                                 entry.value,
-                                style: const TextStyle(fontSize: 48),
+                                style: const TextStyle(fontSize: 42),
                               ).animate(delay: (entry.key * 150).ms).scale(duration: 500.ms).shake(),
                             )
                             .toList(),
@@ -156,6 +158,7 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
                       const SizedBox(height: 48),
                       GestureDetector(
                         onTap: () {
+                          Navigator.pop(context); // Pop completion screen
                           Navigator.pop(context, true); // Return true to mark completed
                         },
                         child: Container(
@@ -237,7 +240,11 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        // Return true if they reached the end
+                        final isCompleted = _currentIndex >= widget.vocabularies.length - 1;
+                        Navigator.pop(context, isCompleted);
+                      },
                     ),
                     Text(
                       '${_currentIndex + 1} / ${widget.vocabularies.length}',
@@ -280,28 +287,48 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
                         children: [
                           const SizedBox(height: 8),
                           // Display Image or Emoji
-                          vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty
-                              ? ClipRRect(
+                          Builder(
+                            builder: (context) {
+                              final wordLower = vocab.word.toLowerCase();
+                              final mockImages = {
+                                'dog': 'https://cdn-icons-png.flaticon.com/512/616/616408.png',
+                                'cat': 'https://cdn-icons-png.flaticon.com/512/616/616430.png',
+                                'cow': 'https://cdn-icons-png.flaticon.com/512/2395/2395796.png',
+                                'one': 'https://cdn-icons-png.flaticon.com/512/3840/3840745.png',
+                                'two': 'https://cdn-icons-png.flaticon.com/512/3840/3840750.png',
+                                'three': 'https://cdn-icons-png.flaticon.com/512/3840/3840754.png',
+                                'circle': 'https://cdn-icons-png.flaticon.com/512/481/481069.png',
+                                'square': 'https://cdn-icons-png.flaticon.com/512/481/481048.png',
+                                'triangle': 'https://cdn-icons-png.flaticon.com/512/481/481050.png',
+                                'sunny': 'https://cdn-icons-png.flaticon.com/512/869/869869.png',
+                                'rainy': 'https://cdn-icons-png.flaticon.com/512/1146/1146860.png',
+                                'windy': 'https://cdn-icons-png.flaticon.com/512/1146/1146869.png',
+                                'teacher': 'https://cdn-icons-png.flaticon.com/512/194/194935.png',
+                                'book': 'https://cdn-icons-png.flaticon.com/512/2232/2232688.png',
+                                'desk': 'https://cdn-icons-png.flaticon.com/512/2663/2663158.png',
+                              };
+                              final fallbackUrl = mockImages[wordLower];
+                              final finalUrl = (vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty) ? vocab.imageUrl : fallbackUrl;
+                              
+                              if (finalUrl != null && finalUrl.isNotEmpty) {
+                                return ClipRRect(
                                   borderRadius: BorderRadius.circular(24),
                                   child: Image.network(
-                                    vocab.imageUrl!.startsWith('http')
-                                        ? vocab.imageUrl!
-                                        : '$baseUrl${vocab.imageUrl!.startsWith('/') ? '' : '/'}${vocab.imageUrl}',
+                                    finalUrl.startsWith('http')
+                                        ? finalUrl
+                                        : '$baseUrl${finalUrl.startsWith('/') ? '' : '/'}$finalUrl',
                                     headers: const {'User-Agent': 'KidioApp/1.0'},
                                     height: 160,
                                     width: 160,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (ctx, err, stack) => const Icon(
-                                      Icons.emoji_events_rounded,
-                                      size: 100,
-                                      color: Colors.orangeAccent,
-                                    ),
+                                    errorBuilder: (ctx, err, stack) => const Text('🐾', style: TextStyle(fontSize: 100)),
                                   ),
-                                )
-                              : const Text(
-                                  '🐾',
-                                  style: TextStyle(fontSize: 100),
-                                ),
+                                );
+                              }
+                              
+                              return const Text('🐾', style: TextStyle(fontSize: 100));
+                            }
+                          ),
                           const SizedBox(height: 16),
 
                           // Word

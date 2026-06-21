@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:app_links/app_links.dart';
 import 'api/api_client.dart';
 import 'repositories/topic_repository.dart';
 import 'repositories/lesson_repository.dart';
@@ -106,12 +108,62 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      _handleDeepLink(initialUri);
+    } catch (e) {
+      debugPrint('Error getting initial link: $e');
+    }
+
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+  }
+
+  void _handleDeepLink(Uri? uri) {
+    if (uri != null) {
+      if (uri.scheme == 'kidio') {
+        // Khi mở qua deep link (như từ email), log out để trở về màn Login
+        if (mounted) {
+          context.read<AuthProvider>().logout();
+          navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'KIDIO Client',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

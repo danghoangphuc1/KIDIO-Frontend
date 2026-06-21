@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../models/kidio_models.dart';
 import '../providers/progress_provider.dart';
 import '../providers/child_provider.dart';
 
@@ -78,9 +79,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> with SingleTick
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _buildMiniStat(Icons.star_rounded, '${child?.totalStars ?? 0}', Colors.orangeAccent),
+                          _buildMiniStat(Icons.star_rounded, '${progressProvider.summary?.totalStars ?? child?.totalStars ?? 0}', Colors.orangeAccent),
                           const SizedBox(width: 12),
-                          _buildMiniStat(Icons.local_fire_department_rounded, '${child?.currentStreakDays ?? 0}', Colors.redAccent),
+                          _buildMiniStat(Icons.local_fire_department_rounded, '${progressProvider.summary?.currentStreakDays ?? child?.currentStreakDays ?? 0}', Colors.redAccent),
                         ],
                       ),
                     ),
@@ -145,8 +146,38 @@ class _AchievementsScreenState extends State<AchievementsScreen> with SingleTick
     );
   }
 
+  List<Achievement> _getMockBadges(int count) {
+    final List<Map<String, String>> badgeData = [
+      {'title': 'Tân binh dũng cảm', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png'},
+      {'title': 'Chiến binh thông thái', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png'},
+      {'title': 'Ngôi sao chớp nhoáng', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png'},
+      {'title': 'Sắc màu rực rỡ', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png'},
+      {'title': 'Trái tim kiên cường', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png'},
+      {'title': 'Bậc thầy kiên nhẫn', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png'},
+      {'title': 'Ngọn lửa nhiệt huyết', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png'},
+      {'title': 'Nhà vô địch Trái Đất', 'url': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png'},
+    ];
+    
+    List<Achievement> mocks = [];
+    for (int i = 0; i < count && i < badgeData.length; i++) {
+      mocks.add(Achievement(
+        id: 'mock_$i',
+        title: badgeData[i]['title']!,
+        iconUrl: badgeData[i]['url'],
+      ));
+    }
+    return mocks;
+  }
+
   Widget _buildAchievementsGrid(ProgressProvider provider) {
-    if (provider.achievements.isEmpty) {
+    List<Achievement> displayAchievements = provider.achievements;
+    
+    // Nếu BE chưa trả về huy hiệu nào nhưng bé ĐÃ học xong bài học, ta sẽ giả lập huy hiệu thưởng
+    if (displayAchievements.isEmpty && provider.completedLessons.isNotEmpty) {
+      displayAchievements = _getMockBadges(provider.completedLessons.length);
+    }
+
+    if (displayAchievements.isEmpty) {
       return _buildEmptyState(Icons.emoji_events_rounded, 'Chưa có huy hiệu nào.', 'Hãy học thật chăm chỉ để nhận quà nhé!');
     }
 
@@ -159,9 +190,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> with SingleTick
         crossAxisSpacing: 20,
         mainAxisSpacing: 20,
       ),
-      itemCount: provider.achievements.length,
+      itemCount: displayAchievements.length,
       itemBuilder: (context, index) {
-        final achievement = provider.achievements[index];
+        final achievement = displayAchievements[index];
         return Column(
           children: [
             Expanded(
@@ -177,6 +208,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> with SingleTick
                     ? CachedNetworkImage(
                         imageUrl: achievement.iconUrl!,
                         placeholder: (context, url) => const Icon(Icons.stars, color: Colors.orangeAccent, size: 30),
+                        errorWidget: (context, url, error) => const Icon(Icons.stars, color: Colors.orangeAccent, size: 30),
                       )
                     : const Icon(Icons.stars, size: 40, color: Colors.orangeAccent),
               ),

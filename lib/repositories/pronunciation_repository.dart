@@ -8,10 +8,12 @@ class PronunciationRepository {
   PronunciationRepository(this._api);
 
   Future<PronunciationScore> submitPronunciation({
+    required String childId,
     required String vocabularyId,
     required File audioFile,
     String? lessonId,
   }) => _api.submitPronunciation(
+    childId: childId,
     vocabularyId: vocabularyId,
     audioFile: audioFile,
     lessonId: lessonId,

@@ -27,12 +27,14 @@ class BattleQuestion {
   final String questionText;
   final List<String> options;
   final String correctAnswer;
+  final String? imageUrl;
 
   BattleQuestion({
     required this.targetVocab,
     required this.questionText,
     required this.options,
     required this.correctAnswer,
+    this.imageUrl,
   });
 }
 
@@ -68,55 +70,23 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
     super.dispose();
   }
 
-  String _getEmoji(String word) {
-    final w = word.toLowerCase().trim();
-    if (w.contains('cat')) return '🐱';
-    if (w.contains('dog')) return '🐶';
-    if (w.contains('bird')) return '🐦';
-    if (w.contains('fish')) return '🐠';
-    if (w.contains('lion')) return '🦁';
-    if (w.contains('elephant')) return '🐘';
-    if (w.contains('tiger')) return '🐯';
-    if (w.contains('monkey')) return '🐵';
-    if (w.contains('bear')) return '🐻';
-    if (w.contains('panda')) return '🐼';
-    if (w.contains('rabbit')) return '🐰';
-    if (w.contains('apple')) return '🍎';
-    if (w.contains('banana')) return '🍌';
-    if (w.contains('orange')) return '🍊';
-    if (w.contains('grape')) return '🍇';
-    if (w.contains('milk')) return '🥛';
-    if (w.contains('bread')) return '🍞';
-    if (w.contains('family')) return '👪';
-    return '✨';
-  }
-
   void _generateQuestions() {
     final random = Random();
     List<BattleQuestion> questions = [];
 
     for (var vocab in widget.vocabularies) {
-      final isEmojiQuestion = random.nextBool();
+      int questionType = random.nextInt(3); // 0, 1, or 2
+      if (questionType == 2 && (vocab.imageUrl == null || vocab.imageUrl!.isEmpty)) {
+        questionType = random.nextInt(2); // fallback to text only
+      }
+
       String questionText;
       String correctAnswer;
       List<String> options = [];
+      String? imageUrl;
 
-      if (isEmojiQuestion) {
-        questionText = 'What is the emoji for "${vocab.word}"?';
-        correctAnswer = _getEmoji(vocab.word);
-        options.add(correctAnswer);
-
-        final otherVocabs = widget.vocabularies.where((v) => v.id != vocab.id).toList();
-        otherVocabs.shuffle(random);
-        for (var ov in otherVocabs) {
-          if (options.length >= 3) break;
-          options.add(_getEmoji(ov.word));
-        }
-        while (options.length < 3) {
-          options.add('👾');
-        }
-      } else {
-        questionText = 'What does "${vocab.word}" mean?';
+      if (questionType == 0) {
+        questionText = 'Nghĩa của từ "${vocab.word}" là gì?';
         correctAnswer = vocab.meaning;
         options.add(correctAnswer);
 
@@ -124,10 +94,36 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
         otherVocabs.shuffle(random);
         for (var ov in otherVocabs) {
           if (options.length >= 3) break;
-          options.add(ov.meaning);
+          if (!options.contains(ov.meaning)) {
+            options.add(ov.meaning);
+          }
         }
-        while (options.length < 3) {
-          options.add('Unknown meaning');
+      } else if (questionType == 1) {
+        questionText = 'Từ nào có nghĩa là "${vocab.meaning}"?';
+        correctAnswer = vocab.word;
+        options.add(correctAnswer);
+
+        final otherVocabs = widget.vocabularies.where((v) => v.id != vocab.id).toList();
+        otherVocabs.shuffle(random);
+        for (var ov in otherVocabs) {
+          if (options.length >= 3) break;
+          if (!options.contains(ov.word)) {
+            options.add(ov.word);
+          }
+        }
+      } else {
+        questionText = 'Từ vựng nào tương ứng với hình ảnh này?';
+        correctAnswer = vocab.word;
+        imageUrl = vocab.imageUrl;
+        options.add(correctAnswer);
+
+        final otherVocabs = widget.vocabularies.where((v) => v.id != vocab.id).toList();
+        otherVocabs.shuffle(random);
+        for (var ov in otherVocabs) {
+          if (options.length >= 3) break;
+          if (!options.contains(ov.word)) {
+            options.add(ov.word);
+          }
         }
       }
 
@@ -137,6 +133,7 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
         questionText: questionText,
         options: options,
         correctAnswer: correctAnswer,
+        imageUrl: imageUrl,
       ));
     }
 
@@ -249,8 +246,17 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
     }
   }
 
-  void _showBattleVictory() {
-    Navigator.pushReplacement(
+  void _restartGame() {
+    _generateQuestions();
+    setState(() {
+      _playerLives = 3;
+      _currentIndex = 0;
+    });
+    _startRoundTimer();
+  }
+
+  Future<void> _showBattleVictory() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -328,7 +334,7 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                       const SizedBox(height: 48),
 
                       GestureDetector(
-                        onTap: () => Navigator.pop(context, true),
+                        onTap: () => Navigator.pop(context),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                           decoration: BoxDecoration(
@@ -354,10 +360,14 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
         ),
       ),
     );
+
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
-  void _showBattleDefeat() {
-    Navigator.pushReplacement(
+  Future<void> _showBattleDefeat() async {
+    final retry = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -392,7 +402,11 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                       const SizedBox(height: 48),
 
                       // Boss laugh emoji
-                      const Text('👾', style: TextStyle(fontSize: 80))
+                      Image.asset(
+                        'assets/images/boss.png',
+                        width: 150,
+                        height: 150,
+                      )
                           .animate()
                           .scale(duration: 500.ms)
                           .shake(),
@@ -402,7 +416,7 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => Navigator.pop(context, false),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white10,
                               foregroundColor: Colors.white,
@@ -413,17 +427,7 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                           ),
                           const SizedBox(width: 16),
                           ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => BossBattleScreen(
-                                    vocabularies: widget.vocabularies,
-                                    lessonId: widget.lessonId,
-                                  ),
-                                ),
-                              );
-                            },
+                            onPressed: () => Navigator.pop(context, true),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.purpleAccent,
                               foregroundColor: Colors.white,
@@ -443,6 +447,14 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
         ),
       ),
     );
+
+    if (mounted) {
+      if (retry == true) {
+        _restartGame();
+      } else {
+        Navigator.pop(context, false);
+      }
+    }
   }
 
   @override
@@ -533,9 +545,10 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
-                            '👾',
-                            style: TextStyle(fontSize: 64),
+                          Image.asset(
+                            'assets/images/boss.png',
+                            width: 120,
+                            height: 120,
                           )
                               .animate(target: _isBossAttacking ? 1 : 0)
                               .scale(
@@ -589,11 +602,29 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        if (currentQ.imageUrl != null && currentQ.imageUrl!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                currentQ.imageUrl!,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => const Icon(
+                                  Icons.image_not_supported_rounded,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
                         Text(
                           currentQ.questionText,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF102D54),
                           ),
