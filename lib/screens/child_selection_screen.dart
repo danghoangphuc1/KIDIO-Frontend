@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/child_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/progress_provider.dart';
 import '../models/kidio_models.dart';
 import '../widgets/parent_pin_dialogs.dart';
 import 'parent_dashboard_screen.dart';
@@ -200,7 +201,11 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
       clipBehavior: Clip.none,
       children: [
         InkWell(
-          onTap: () => context.read<ChildProvider>().selectChild(child),
+          onTap: () {
+            context.read<ProgressProvider>().clearProgress();
+            context.read<ChildProvider>().selectChild(child);
+            context.read<ProgressProvider>().loadChildProgress(child.id);
+          },
           borderRadius: BorderRadius.circular(28),
           child: GlassCard(
             width: 150,
@@ -676,6 +681,8 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
+              context.read<ProgressProvider>().clearProgress();
+              context.read<ChildProvider>().deselectChild();
               context.read<AuthProvider>().logout();
             },
             child: const Text('CÓ, ĐĂNG XUẤT', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),

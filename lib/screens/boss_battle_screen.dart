@@ -562,9 +562,11 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'ANIMAL MONSTER',
-                        style: TextStyle(
+                      Text(
+                        widget.vocabularies.isNotEmpty
+                            ? '👾 ${widget.vocabularies.first.word.toUpperCase()} BOSS'
+                            : '👾 WORD BOSS',
+                        style: const TextStyle(
                           color: Colors.purpleAccent,
                           fontWeight: FontWeight.w900,
                           fontSize: 14,
@@ -599,85 +601,91 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
                         BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 6))
                       ],
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (currentQ.imageUrl != null && currentQ.imageUrl!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.network(
-                                currentQ.imageUrl!,
-                                height: 120,
-                                width: double.infinity,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) => const Icon(
-                                  Icons.image_not_supported_rounded,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ),
-                        Text(
-                          currentQ.questionText,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF102D54),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Options vertical column
-                        ...currentQ.options.map((option) {
-                          final isSelected = _selectedOption == option;
-                          final isCorrect = option == currentQ.correctAnswer;
-
-                          Color buttonBgColor = Colors.grey.shade50;
-                          Color borderColor = Colors.grey.shade200;
-                          Color textColor = const Color(0xFF102D54);
-
-                          if (_isAnswered) {
-                            if (isSelected) {
-                              buttonBgColor = isCorrect ? Colors.green.shade50 : Colors.red.shade50;
-                              borderColor = isCorrect ? Colors.green : Colors.red;
-                              textColor = isCorrect ? Colors.green.shade800 : Colors.red.shade800;
-                            } else if (isCorrect) {
-                              buttonBgColor = Colors.green.shade50;
-                              borderColor = Colors.green;
-                              textColor = Colors.green.shade800;
-                            }
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: GestureDetector(
-                              onTap: () => _handleAnswerSelected(option),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                                decoration: BoxDecoration(
-                                  color: buttonBgColor,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: borderColor, width: 2.5),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  option,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    color: textColor,
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (currentQ.imageUrl != null && currentQ.imageUrl!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.network(
+                                  currentQ.imageUrl!,
+                                  height: 120,
+                                  width: double.infinity,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) => const Icon(
+                                    Icons.image_not_supported_rounded,
+                                    size: 64,
+                                    color: Colors.grey,
                                   ),
                                 ),
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ],
+                          Text(
+                            currentQ.questionText,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF102D54),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Options vertical column
+                          ...currentQ.options.map((option) {
+                            final isSelected = _selectedOption == option;
+                            final isCorrect = option == currentQ.correctAnswer;
+
+                            Color buttonBgColor = Colors.grey.shade50;
+                            Color borderColor = Colors.grey.shade200;
+                            Color textColor = const Color(0xFF102D54);
+
+                            if (_isAnswered) {
+                              if (isSelected) {
+                                buttonBgColor = isCorrect ? Colors.green.shade50 : Colors.red.shade50;
+                                borderColor = isCorrect ? Colors.green : Colors.red;
+                                textColor = isCorrect ? Colors.green.shade800 : Colors.red.shade800;
+                              } else if (isCorrect) {
+                                buttonBgColor = Colors.green.shade50;
+                                borderColor = Colors.green;
+                                textColor = Colors.green.shade800;
+                              }
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: GestureDetector(
+                                onTap: () => _handleAnswerSelected(option),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: buttonBgColor,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: borderColor, width: 2.5),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    option,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
                     ),
                   ),
                 ),

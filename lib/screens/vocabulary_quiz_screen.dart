@@ -1,16 +1,11 @@
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:record/record.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/kidio_models.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
-import '../providers/pronunciation_provider.dart';
 
 class VocabularyQuizScreen extends StatefulWidget {
   final List<Vocabulary> vocabularies;
@@ -52,9 +47,6 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
   final Set<String> _wrongAnswers = {};
   bool _isAudioPlaying = false;
 
-  final _audioRecorder = AudioRecorder();
-  bool _isRecording = false;
-
   @override
   void initState() {
     super.initState();
@@ -64,123 +56,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
   @override
   void dispose() {
     _audioPlayer.dispose();
-    _audioRecorder.dispose();
     super.dispose();
-  }
-
-  Future<void> _startRecording() async {
-    try {
-      if (await Permission.microphone.request().isGranted) {
-        final directory = await getApplicationDocumentsDirectory();
-        final path = '${directory.path}/pronunciation_${DateTime.now().millisecondsSinceEpoch}.wav';
-        await _audioRecorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.wav,
-            sampleRate: 16000,
-            numChannels: 1,
-          ),
-          path: path,
-        );
-        setState(() {
-          _isRecording = true;
-        });
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vui lòng cấp quyền Micro để sử dụng tính năng này.')),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error starting record: $e');
-    }
-  }
-
-  Future<void> _stopRecordingAndSubmit(String vocabularyId) async {
-    try {
-      final path = await _audioRecorder.stop();
-      setState(() => _isRecording = false);
-      if (path != null && mounted) {
-        final file = File(path);
-        if (await file.exists()) {
-          _showScoringDialog();
-
-          await context.read<PronunciationProvider>().submitPronunciation(
-                vocabularyId: vocabularyId,
-                audioFile: file,
-                lessonId: widget.lessonId,
-              );
-
-          if (mounted) {
-            Navigator.pop(context); // Close loading dialog
-            final score = context.read<PronunciationProvider>().lastScore;
-            if (score != null) {
-              _showScoreResultDialog(score);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Không thể chấm điểm: ${context.read<PronunciationProvider>().errorMessage}',
-                  ),
-                ),
-              );
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error stopping record: $e');
-      setState(() => _isRecording = false);
-    }
-  }
-
-  void _showScoringDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: Colors.purpleAccent),
-            const SizedBox(height: 20),
-            Text(
-              'AI đang nghe và chấm điểm...',
-              style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showScoreResultDialog(PronunciationScore score) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Kết quả phát âm AI', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Điểm tổng quát: ${score.overallScore}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
-            const SizedBox(height: 8),
-            Text('Độ chính xác: ${score.accuracyScore}'),
-            Text('Độ lưu loát: ${score.fluencyScore}'),
-            const SizedBox(height: 12),
-            Text('Phản hồi: ${score.feedback}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          )
-        ],
-      ),
-    );
   }
 
   void _generateQuestions() {
@@ -191,7 +67,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     for (var vocab in widget.vocabularies) {
       final hasImage = vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty;
       final qText = hasImage
-          ? 'What is this animal? 🐾'
+          ? 'What does this picture show? 🔍'
           : 'Từ này có nghĩa là gì? 🤔';
 
       List<String> options = [vocab.meaning];
@@ -567,7 +443,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 1.5,
+                    childAspectRatio: 1.3,
                   ),
                   itemBuilder: (context, idx) {
                     final option = currentQ.options[idx];
@@ -609,15 +485,18 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                           ],
                         ),
                         alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          prefix + option,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'FredokaOne',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: textColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            prefix + option,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'FredokaOne',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: textColor,
+                            ),
                           ),
                         ),
                       ),

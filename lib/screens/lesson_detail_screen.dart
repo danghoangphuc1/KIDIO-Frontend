@@ -91,7 +91,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         final progress = await progressProvider.checkLessonCompletion(childId, widget.lessonId);
         if (mounted) {
           setState(() {
-            _isCompleted = progress != null;
+            _isCompleted = progress != null && progress.isCompleted;
             if (_isCompleted) {
               _vocabCompleted = true;
               _listeningCompleted = true;
@@ -173,6 +173,17 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
       );
 
       if (mounted) {
+        // Immediately mark as completed in local state so UI updates
+        // without waiting for the async reload from the server.
+        setState(() {
+          _isCompleted = true;
+          _vocabCompleted = true;
+          _listeningCompleted = true;
+          _pronCompleted = true;
+          _quizCompleted = true;
+          _bossCompleted = true;
+        });
+        await context.read<ChildProvider>().refreshSelectedChild();
         _showSuccessDialog();
       }
     } catch (e) {

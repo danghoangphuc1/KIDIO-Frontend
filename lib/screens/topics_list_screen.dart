@@ -65,6 +65,8 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
+              context.read<ProgressProvider>().clearProgress();
+              context.read<ChildProvider>().deselectChild();
               context.read<AuthProvider>().logout();
             },
             child: const Text('CÓ', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -191,14 +193,14 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFFB923C), width: 1.5),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.local_fire_department_rounded, color: Color(0xFFEA580C), size: 16),
-                          SizedBox(width: 2),
+                          const Icon(Icons.local_fire_department_rounded, color: Color(0xFFEA580C), size: 16),
+                          const SizedBox(width: 2),
                           Text(
-                            '7',
-                            style: TextStyle(
+                            '${selectedChild?.currentStreakDays ?? 0}',
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF9A3412),
@@ -414,7 +416,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                   itemCount: topicProvider.topics.length + 1 + (topicProvider.hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == 0) {
-                      return _buildDailyQuestCard(context);
+                      return _buildDailyQuestCard(context, progressProvider);
                     }
                     
                     final topicIndex = index - 1;
@@ -448,7 +450,16 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
     );
   }
 
-  Widget _buildDailyQuestCard(BuildContext context) {
+  Widget _buildDailyQuestCard(BuildContext context, ProgressProvider progressProvider) {
+    final today = DateTime.now();
+    final completedToday = progressProvider.completedLessons.where((p) {
+      if (p.completedAt == null) return false;
+      final localDate = p.completedAt!.toLocal();
+      return localDate.year == today.year && localDate.month == today.month && localDate.day == today.day;
+    }).length;
+
+    final progressValue = completedToday >= 1 ? 1.0 : 0.0;
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -475,11 +486,11 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
               child: const Text('🏆', style: TextStyle(fontSize: 28)),
             ),
             const SizedBox(width: 16),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Nhiệm Vụ Hàng Ngày',
                     style: TextStyle(
                       fontSize: 16,
@@ -487,22 +498,24 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                       color: Color(0xFF78350F),
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Hoàn thành 1 bài học để nhận thêm 10 ⭐!',
-                    style: TextStyle(
+                    completedToday >= 1
+                        ? 'Đã hoàn thành! Nhận thưởng trong tab Quests 🎉'
+                        : 'Hoàn thành 1 bài học để nhận thêm 10 ⭐! ($completedToday/1)',
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF92400E),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   ClipRRect(
-                    borderRadius: BorderRadius.all(Radius.circular(6)),
+                    borderRadius: const BorderRadius.all(Radius.circular(6)),
                     child: LinearProgressIndicator(
-                      value: 0.0,
-                      backgroundColor: Color(0xFFFEF3C7),
-                      color: Color(0xFFF59E0B),
+                      value: progressValue,
+                      backgroundColor: const Color(0xFFFEF3C7),
+                      color: const Color(0xFFF59E0B),
                       minHeight: 8,
                     ),
                   ),

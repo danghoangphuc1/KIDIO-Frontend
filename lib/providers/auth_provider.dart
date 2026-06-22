@@ -219,10 +219,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
+  Future<void> logout({VoidCallback? onLogout}) async {
     await _repository.logout();
     _isAuthenticated = false;
     _currentUser = null;
+    onLogout?.call();
     notifyListeners();
   }
 

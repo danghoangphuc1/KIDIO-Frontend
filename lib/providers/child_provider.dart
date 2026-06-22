@@ -61,6 +61,22 @@ class ChildProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> refreshSelectedChild() async {
+    if (_selectedChild == null) return;
+    try {
+      final updated = await _repository.getChildById(_selectedChild!.id);
+      _selectedChild = updated;
+      
+      final index = _children.indexWhere((c) => c.id == updated.id);
+      if (index != -1) {
+        _children[index] = updated;
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error refreshing selected child: $e");
+    }
+  }
+
   Future<bool> createChild(String name, int age, {String? avatarUrl}) async {
     _isLoading = true;
     notifyListeners();

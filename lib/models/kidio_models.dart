@@ -201,6 +201,7 @@ class ChildProgressSummary {
   });
 
   factory ChildProgressSummary.fromJson(Map<String, dynamic> json) => _$ChildProgressSummaryFromJson(json);
+  Map<String, dynamic> toJson() => _$ChildProgressSummaryToJson(this);
 }
 
 @JsonSerializable()
@@ -220,6 +221,7 @@ class TopicProgressItem {
   });
 
   factory TopicProgressItem.fromJson(Map<String, dynamic> json) => _$TopicProgressItemFromJson(json);
+  Map<String, dynamic> toJson() => _$TopicProgressItemToJson(this);
 }
 
 @JsonSerializable()

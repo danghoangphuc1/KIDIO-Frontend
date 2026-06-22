@@ -24,14 +24,9 @@ class ApiClient {
     }
     if (kDebugMode) {
       // Dành cho phát triển local
-      // - Nếu dùng Android Emulator: dùng 'http://10.0.2.2:5109/api/'
-      // - Nếu dùng iOS Simulator / Web / Desktop: dùng 'http://localhost:5109/api/'
-      // - Nếu dùng thiết bị thật (như điện thoại Android qua Wi-Fi): hãy đổi thành IP máy tính của bạn (VD: 'http://192.168.1.5:5109/api/')
-      
-      return 'http://192.168.1.10:5109/api/'; // Hoặc thay đổi theo nhu cầu test thiết bị ở đây
+      return 'http://192.168.1.10:5109/api/';
     }
-    // Production Render API endpoint
-    return 'https://kidio-be.onrender.com/api/';
+    return 'https://kidio-be-shx1.onrender.com/api/';
   }
   Future<bool> Function()? onRefreshToken;
 

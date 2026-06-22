@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../models/kidio_models.dart';
 import '../repositories/pronunciation_repository.dart';
 
@@ -53,6 +54,18 @@ class PronunciationProvider extends ChangeNotifier {
         audioFile: audioFile,
         lessonId: lessonId,
       );
+      
+      // Increment daily pronunciation counter on successful submission
+      try {
+        final box = Hive.box('kidio_cache');
+        final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+        final key = 'daily_pron_count_${childId}_$todayStr';
+        final currentCount = box.get(key, defaultValue: 0);
+        await box.put(key, currentCount + 1);
+      } catch (hiveError) {
+        debugPrint("Error updating daily pronunciation count in Hive: $hiveError");
+      }
+
       // Reload history after submit
       await loadVocabularyHistory(vocabularyId);
     } catch (e) {

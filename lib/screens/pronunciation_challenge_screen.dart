@@ -8,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/kidio_models.dart';
 import '../providers/pronunciation_provider.dart';
+import '../providers/child_provider.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
 
@@ -125,9 +126,11 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
         final file = File(path);
         if (await file.exists()) {
           final pronProvider = context.read<PronunciationProvider>();
+          final childId = context.read<ChildProvider>().selectedChild?.id;
           final vocab = widget.vocabularies[_currentIndex];
 
           await pronProvider.submitPronunciation(
+            childId: childId ?? '',
             vocabularyId: vocab.id,
             audioFile: file,
             lessonId: widget.lessonId,

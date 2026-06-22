@@ -561,7 +561,11 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                               builder: (context) => LessonDetailScreen(lessonId: lesson.id),
                                             ),
                                           );
-                                          if (childId != null) progressProvider.loadChildProgress(childId);
+                                          // NOTE: Do NOT call loadChildProgress here.
+                                          // submitProgress() inside LessonDetailScreen already calls
+                                          // loadChildProgress() and awaits its completion before
+                                          // returning. Calling it again clears completedLessons=[]
+                                          // and causes a "not completed" flash on return.
                                         },
                                       )
                                     else

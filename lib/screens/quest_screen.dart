@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import '../models/kidio_models.dart';
+import '../providers/child_provider.dart';
+import '../providers/progress_provider.dart';
 import '../widgets/glassmorphic_widgets.dart';
 
 class Quest {
@@ -35,60 +39,36 @@ class QuestScreen extends StatefulWidget {
 }
 
 class _QuestScreenState extends State<QuestScreen> {
-  final List<Quest> _quests = [
-    Quest(id: 1, title: "Complete 2 Lessons", emoji: "📖", total: 2, reward: 10, color: const Color(0xFF03A566)),
-    Quest(id: 2, title: "Practice Pronunciation ×3", emoji: "🎤", total: 3, reward: 20, color: const Color(0xFFFF5C9F)),
-    Quest(id: 3, title: "Earn 5 Stars", emoji: "⭐", total: 5, reward: 15, color: const Color(0xFFFACC15)),
-    Quest(id: 4, title: "Learn for 15 Minutes", emoji: "⏱️", total: 15, reward: 25, color: const Color(0xFF0EA5E9)),
-  ];
-
-  bool _isLoading = true;
-  int _totalStars = 120; // Hardcoded default matching React prototype
-
-  @override
-  void initState() {
-    super.initState();
-    _loadQuestData();
-  }
-
-  void _loadQuestData() {
-    final box = Hive.box('kidio_cache');
-    setState(() {
-      _totalStars = box.get('kidi_quest_stars') ?? 120;
-      
-      // Load progress
-      _quests[0].progress = box.get('quest_1_progress') ?? 2; // Default to matching React static UI
-      _quests[0].isClaimed = box.get('quest_1_claimed') ?? true;
-
-      _quests[1].progress = box.get('quest_2_progress') ?? 1;
-      _quests[1].isClaimed = box.get('quest_2_claimed') ?? false;
-
-      _quests[2].progress = box.get('quest_3_progress') ?? 3;
-      _quests[2].isClaimed = box.get('quest_3_claimed') ?? false;
-
-      _quests[3].progress = box.get('quest_4_progress') ?? 8;
-      _quests[3].isClaimed = box.get('quest_4_claimed') ?? false;
-
-      _isLoading = false;
-    });
-  }
-
   Future<void> _claimReward(Quest quest) async {
     if (!quest.isDone || quest.isClaimed) return;
     
+    final childProvider = context.read<ChildProvider>();
+    final child = childProvider.selectedChild;
+    if (child == null) return;
+    final childId = child.id;
+    final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+
     final box = Hive.box('kidio_cache');
-    setState(() {
-      quest.isClaimed = true;
-      _totalStars += quest.reward;
-    });
     
-    await box.put('quest_${quest.id}_claimed', true);
-    await box.put('kidi_quest_stars', _totalStars);
+    // Save claim status locally
+    await box.put('quest_${quest.id}_claimed_${childId}_$todayStr', true);
+
+    // Update child's stars in Provider
+    final updatedChild = Child(
+      id: child.id,
+      name: child.name,
+      age: child.age,
+      avatarUrl: child.avatarUrl,
+      totalStars: child.totalStars + quest.reward,
+      currentStreakDays: child.currentStreakDays,
+      lastLessonAt: child.lastLessonAt,
+    );
+    childProvider.selectChild(updatedChild);
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🎉 Claimed ${quest.reward} Stars! Total: $_totalStars ⭐'),
+          content: Text('🎉 Nhận thành công ${quest.reward} ⭐! Tổng số sao: ${updatedChild.totalStars} ⭐'),
           backgroundColor: const Color(0xFF03A566),
           behavior: SnackBarBehavior.floating,
         ),
@@ -98,12 +78,58 @@ class _QuestScreenState extends State<QuestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final childProvider = context.watch<ChildProvider>();
+    final progressProvider = context.watch<ProgressProvider>();
+
+    if (progressProvider.isLoading && progressProvider.completedLessons.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    final completedCount = _quests.filterDoneCount();
-    final progressPct = _quests.isEmpty ? 0.0 : completedCount / _quests.length;
+    final child = childProvider.selectedChild;
+    final childId = child?.id ?? 'default';
+    final totalStars = child?.totalStars ?? 0;
+
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().substring(0, 10);
+
+    // Compute progress dynamically:
+    // 1. Lessons completed today
+    final completedToday = progressProvider.completedLessons.where((p) {
+      if (p.completedAt == null) return false;
+      final localDate = p.completedAt!.toLocal();
+      return localDate.year == today.year && localDate.month == today.month && localDate.day == today.day;
+    }).length;
+
+    // 2. Daily pronunciations count in Hive
+    final box = Hive.box('kidio_cache');
+    final pronCount = box.get('daily_pron_count_${childId}_$todayStr', defaultValue: 0) as int;
+
+    // 3. Stars earned today
+    final starsToday = progressProvider.completedLessons.where((p) {
+      if (p.completedAt == null) return false;
+      final localDate = p.completedAt!.toLocal();
+      return localDate.year == today.year && localDate.month == today.month && localDate.day == today.day;
+    }).fold<int>(0, (sum, p) => sum + p.starsEarned);
+
+    // 4. Minutes spent today
+    final secondsToday = progressProvider.completedLessons.where((p) {
+      if (p.completedAt == null) return false;
+      final localDate = p.completedAt!.toLocal();
+      return localDate.year == today.year && localDate.month == today.month && localDate.day == today.day;
+    }).fold<int>(0, (sum, p) => sum + p.timeSpentSeconds);
+    final minutesToday = secondsToday ~/ 60;
+
+    final quests = [
+      Quest(id: 1, title: "Hoàn thành 2 bài học", emoji: "📖", total: 2, reward: 10, color: const Color(0xFF03A566), progress: completedToday, isClaimed: box.get('quest_1_claimed_${childId}_$todayStr', defaultValue: false)),
+      Quest(id: 2, title: "Luyện phát âm ×3 lần", emoji: "🎤", total: 3, reward: 20, color: const Color(0xFFFF5C9F), progress: pronCount, isClaimed: box.get('quest_2_claimed_${childId}_$todayStr', defaultValue: false)),
+      Quest(id: 3, title: "Đạt được 5 Sao học tập", emoji: "⭐", total: 5, reward: 15, color: const Color(0xFFFACC15), progress: starsToday, isClaimed: box.get('quest_3_claimed_${childId}_$todayStr', defaultValue: false)),
+      Quest(id: 4, title: "Học tập trong 15 phút", emoji: "⏱️", total: 15, reward: 25, color: const Color(0xFF0EA5E9), progress: minutesToday, isClaimed: box.get('quest_4_claimed_${childId}_$todayStr', defaultValue: false)),
+    ];
+
+    final completedCount = quests.filterDoneCount();
+    final progressPct = quests.isEmpty ? 0.0 : completedCount / quests.length;
 
     return Scaffold(
       appBar: widget.isTab
@@ -116,7 +142,7 @@ class _QuestScreenState extends State<QuestScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               title: const Text(
-                '⚡ Daily Quests',
+                '⚡ Nhiệm Vụ Hàng Ngày',
                 style: TextStyle(
                   fontFamily: 'FredokaOne',
                   fontSize: 22,
@@ -138,7 +164,7 @@ class _QuestScreenState extends State<QuestScreen> {
                       const Icon(Icons.star_rounded, color: Color(0xFFEAB308), size: 18),
                       const SizedBox(width: 4),
                       Text(
-                        '$_totalStars',
+                        '$totalStars',
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF854D0E),
@@ -187,7 +213,7 @@ class _QuestScreenState extends State<QuestScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              '⚡ Daily Quests',
+                              '⚡ Nhiệm vụ hôm nay',
                               style: TextStyle(
                                 fontFamily: 'FredokaOne',
                                 fontSize: 22,
@@ -197,7 +223,7 @@ class _QuestScreenState extends State<QuestScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Complete all missions to win the treasure!',
+                              'Hoàn thành tất cả nhiệm vụ để đạt được nhiều phần thưởng hơn!',
                               style: TextStyle(
                                 color: const Color(0xFF102D54).withOpacity(0.68),
                                 fontSize: 12,
@@ -214,7 +240,7 @@ class _QuestScreenState extends State<QuestScreen> {
                         child: Row(
                           children: [
                             const Text(
-                              'Today\'s Progress',
+                              'Tiến độ ngày',
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF102D54),
@@ -235,7 +261,7 @@ class _QuestScreenState extends State<QuestScreen> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              '$completedCount / ${_quests.length}',
+                              '$completedCount / ${quests.length}',
                               style: const TextStyle(
                                 fontFamily: 'FredokaOne',
                                 color: Color(0xFF03A566),
@@ -258,9 +284,9 @@ class _QuestScreenState extends State<QuestScreen> {
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   physics: const BouncingScrollPhysics(),
-                  itemCount: _quests.length,
+                  itemCount: quests.length,
                   itemBuilder: (context, index) {
-                    final quest = _quests[index];
+                    final quest = quests[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 14),
                       decoration: BoxDecoration(
@@ -325,7 +351,7 @@ class _QuestScreenState extends State<QuestScreen> {
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(5),
                                           child: LinearProgressIndicator(
-                                            value: quest.progress / quest.total,
+                                            value: quest.total == 0 ? 0.0 : (quest.progress / quest.total).clamp(0.0, 1.0),
                                             minHeight: 6,
                                             backgroundColor: const Color(0xFFF1F5F9),
                                             valueColor: AlwaysStoppedAnimation<Color>(quest.color),
@@ -423,7 +449,7 @@ class _QuestScreenState extends State<QuestScreen> {
           ],
         ),
         child: const Text(
-          'CLAIM',
+          'NHẬN',
           style: TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 11,
