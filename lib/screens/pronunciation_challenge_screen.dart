@@ -47,6 +47,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
     super.dispose();
   }
 
+  //Loa
   Future<void> _playCurrentWord() async {
     if (_isAudioPlaying) return;
     setState(() => _isAudioPlaying = true);
@@ -84,6 +85,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
     }
   }
 
+  // Micro
   Future<void> _startRecording() async {
     try {
       if (await Permission.microphone.request().isGranted) {
