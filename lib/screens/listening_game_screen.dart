@@ -107,13 +107,11 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
         options.add(d);
       }
 
-      // If less than 4 vocabulary items are available overall, fill options
       while (options.length < 4 && widget.vocabularies.isNotEmpty) {
         options.add(widget.vocabularies[random.nextInt(widget.vocabularies.length)]);
       }
 
       options.shuffle(random);
-
       rounds.add(ListeningRound(correctVocab: vocab, options: options));
     }
 
@@ -160,67 +158,50 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
     }
   }
 
-  void _onAnswerSelected(Vocabulary selectedVocab) {
+  void _onAnswerSelected(Vocabulary option) {
     if (_hasAnswered) return;
 
-    final round = _rounds[_currentRoundIndex];
-    final isCorrect = selectedVocab.id == round.correctVocab.id;
-
     setState(() {
-      _selectedVocabId = selectedVocab.id;
+      _selectedVocabId = option.id;
       _hasAnswered = true;
     });
 
-    if (isCorrect) {
+    final round = _rounds[_currentRoundIndex];
+    if (option.id == round.correctVocab.id) {
       if (_firstTryCorrect) {
-        _starsEarned++;
+        setState(() => _starsEarned += 10);
+      } else {
+        setState(() => _starsEarned += 5);
       }
-      _playTtsFeedback(true);
-
-      Future.delayed(const Duration(milliseconds: 1400), () {
-        if (mounted) {
-          if (_currentRoundIndex < _rounds.length - 1) {
-            setState(() {
-              _currentRoundIndex++;
-              _hasAnswered = false;
-              _selectedVocabId = null;
-              _firstTryCorrect = true;
-            });
-            _playRoundSound();
-          } else {
-            _showGameComplete();
-          }
-        }
-      });
+      Future.delayed(const Duration(milliseconds: 1600), _nextRound);
     } else {
-      _firstTryCorrect = false;
-      _playTtsFeedback(false);
-      Future.delayed(const Duration(milliseconds: 1000), () {
+      setState(() => _firstTryCorrect = false);
+      Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) {
           setState(() {
-            _hasAnswered = false;
             _selectedVocabId = null;
+            _hasAnswered = false;
           });
         }
       });
     }
   }
 
-  Future<void> _playTtsFeedback(bool isCorrect) async {
-    try {
-      if (isCorrect) {
-        await _audioPlayer.play(UrlSource(
-            'https://dict.youdao.com/dictvoice?audio=excellent&type=1'));
-      } else {
-        await _audioPlayer.play(UrlSource(
-            'https://dict.youdao.com/dictvoice?audio=try+again&type=1'));
-      }
-    } catch (e) {
-      debugPrint('Feedback voice error: $e');
+  void _nextRound() {
+    if (_currentRoundIndex < _rounds.length - 1) {
+      setState(() {
+        _currentRoundIndex++;
+        _selectedVocabId = null;
+        _hasAnswered = false;
+        _firstTryCorrect = true;
+      });
+      _playRoundSound();
+    } else {
+      _showCompletionScreen();
     }
   }
 
-  void _showGameComplete() {
+  void _showCompletionScreen() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -228,25 +209,26 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
           body: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF3EA5FF), Color(0xFF03A566)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                colors: [Color(0xFF2E0854), Color(0xFF5B118F)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
             child: SafeArea(
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'AWESOME WORK! 🎧',
+                        '🌟 EXCELLENT! 🌟',
                         style: TextStyle(
+                          fontFamily: 'FredokaOne',
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
-                          letterSpacing: 1.5,
+                          letterSpacing: 2,
                         ),
                       ).animate().shake(duration: 800.ms),
                       const SizedBox(height: 12),
@@ -259,7 +241,6 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
                         ),
                       ),
                       const SizedBox(height: 36),
-                      // Stars reward box
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                         decoration: BoxDecoration(
@@ -288,6 +269,7 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
                                 Text(
                                   '+$_starsEarned',
                                   style: const TextStyle(
+                                    fontFamily: 'FredokaOne',
                                     fontSize: 36,
                                     fontWeight: FontWeight.w900,
                                     color: Color(0xFF102D54),
@@ -313,6 +295,7 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
                           child: const Text(
                             'QUAY LẠI HOẠT ĐỘNG',
                             style: TextStyle(
+                              fontFamily: 'FredokaOne',
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF102D54),
@@ -341,210 +324,230 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
     }
 
     final round = _rounds[_currentRoundIndex];
-    final double progress = (_currentRoundIndex + 1) / _rounds.length;
+    final double progressVal = (_currentRoundIndex + 1) / _rounds.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE6FFFA),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE6FFFA), Color(0xFFB2F5EA)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              children: [
-                // Top header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
-                      onPressed: () => Navigator.pop(context),
+      backgroundColor: const Color(0xFFEEF2FD),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            children: [
+              // Top header row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Text(
+                    'Round ${_currentRoundIndex + 1}/${_rounds.length}',
+                    style: const TextStyle(
+                      fontFamily: 'FredokaOne',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102D54),
                     ),
-                    Text(
-                      'Round ${_currentRoundIndex + 1}/${_rounds.length}',
-                      style: const TextStyle(
-                        fontSize: 20,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$_starsEarned',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFD97706),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Progress Indicator
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: progressVal,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFCBD5E1),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF2E93)),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Centered Speaker Card ──
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 16, offset: const Offset(0, 6))
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Listen carefully!',
+                      style: TextStyle(
+                        fontFamily: 'FredokaOne',
+                        fontSize: 18,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF102D54),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.shade100,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$_starsEarned',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF854D0E),
+                    const SizedBox(height: 16),
+
+                    // Ripple Effect Speaker Button
+                    GestureDetector(
+                      onTap: _playRoundSound,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF38BDF8).withOpacity(0.4),
+                              blurRadius: _isAudioPlaying ? 24 : 12,
+                              spreadRadius: _isAudioPlaying ? 6 : 2,
                             ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0284C7), // Blue-cyan color
+                            shape: BoxShape.circle,
                           ),
-                        ],
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.volume_up_rounded,
+                            color: Colors.white,
+                            size: 42,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+              ),
+              const SizedBox(height: 28),
 
-                // Linear progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.teal.shade50,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
+              // ── 2x2 grid of options (emoji only) ──
+              Expanded(
+                child: GridView.builder(
+                  itemCount: round.options.length,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.1,
                   ),
-                ),
-                const SizedBox(height: 24),
+                  itemBuilder: (context, index) {
+                    final option = round.options[index];
+                    final isSelected = _selectedVocabId == option.id;
+                    final isCorrect = option.id == round.correctVocab.id;
 
-                // Waving Panda character prompting to listen
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Text(
-                        '🐼',
-                        style: TextStyle(fontSize: 48),
-                      ).animate().shake(hz: 3, duration: 1.5.seconds, curve: Curves.easeInOut),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Click to Listen! 🔊',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF102D54),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Nghe và chọn hình vẽ tương ứng với từ con nghe được!',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade600,
-                              ),
+                    Color cardBorderColor = const Color(0xFFE2E8F0);
+                    Color cardColor = Colors.white;
+
+                    if (_hasAnswered) {
+                      if (isSelected) {
+                        cardColor = isCorrect ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2);
+                        cardBorderColor = isCorrect ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+                      } else if (isCorrect) {
+                        cardColor = const Color(0xFFD1FAE5);
+                        cardBorderColor = const Color(0xFF10B981);
+                      }
+                    }
+
+                    Widget optionCard = GestureDetector(
+                      onTap: () => _onAnswerSelected(option),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: cardBorderColor, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Colors.teal,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.volume_up_rounded, color: Colors.white),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _getEmoji(option.word),
+                          style: const TextStyle(fontSize: 64),
                         ),
-                        onPressed: _playRoundSound,
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
+                    );
 
-                // 2x2 grid of options
-                Expanded(
-                  child: GridView.builder(
-                    itemCount: round.options.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.9,
+                    if (_hasAnswered && isSelected && !isCorrect) {
+                      optionCard = optionCard.animate().shake(duration: 500.ms, hz: 6);
+                    }
+
+                    return optionCard;
+                  },
+                ),
+              ),
+
+              // ── Mascot Section ──
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                child: Row(
+                  children: [
+                    const Text(
+                      '🐼',
+                      style: TextStyle(fontSize: 48),
+                    ).animate().shake(hz: 2, duration: 2.seconds),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black12.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                          ],
+                        ),
+                        child: const Text(
+                          "Listen to the sound and choose the matching friend!",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF102D54),
+                          ),
+                        ),
+                      ),
                     ),
-                    itemBuilder: (context, index) {
-                      final option = round.options[index];
-                      final isSelected = _selectedVocabId == option.id;
-                      final isCorrect = option.id == round.correctVocab.id;
-
-                      Color cardBorderColor = Colors.grey.shade200;
-                      Color cardColor = Colors.white;
-
-                      if (_hasAnswered) {
-                        if (isSelected) {
-                          cardColor = isCorrect ? Colors.green.shade50 : Colors.red.shade50;
-                          cardBorderColor = isCorrect ? Colors.green : Colors.red;
-                        } else if (isCorrect) {
-                          // Highlight correct option if incorrect selected
-                          cardColor = Colors.green.shade50;
-                          cardBorderColor = Colors.green;
-                        }
-                      }
-
-                      Widget optionCard = GestureDetector(
-                        onTap: () => _onAnswerSelected(option),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(color: cardBorderColor, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _getEmoji(option.word),
-                                style: const TextStyle(fontSize: 54),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                option.meaning,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF102D54),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-
-                      // Animate on wrong answer tap shake
-                      if (_hasAnswered && isSelected && !isCorrect) {
-                        optionCard = optionCard.animate().shake(duration: 500.ms, hz: 6);
-                      }
-
-                      return optionCard;
-                    },
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "374569495508-taucqbbe1vmd1qstb6n8aco9baqj606r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kidio_client",
+            "certificate_hash": "43d7e76d9f94c68d57df60a0a682d1999f363d2a"
+          }
+        },
+        {
           "client_id": "374569495508-vuonlvgep7ike3cps4f8n1bsv88v2kgm.apps.googleusercontent.com",
           "client_type": 3
         }

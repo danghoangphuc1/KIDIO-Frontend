@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -5,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../models/kidio_models.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
-import '../widgets/glassmorphic_widgets.dart';
 
 class VocabLearnScreen extends StatefulWidget {
   final List<Vocabulary> vocabularies;
@@ -21,31 +21,61 @@ class VocabLearnScreen extends StatefulWidget {
   State<VocabLearnScreen> createState() => _VocabLearnScreenState();
 }
 
-class _VocabLearnScreenState extends State<VocabLearnScreen> {
+class _VocabLearnScreenState extends State<VocabLearnScreen>
+    with SingleTickerProviderStateMixin {
   final AudioPlayer _audioPlayer = AudioPlayer();
   int _currentIndex = 0;
   bool _isAudioPlaying = false;
 
+  // ── 3D Flip state ──
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
+  bool _isFlipped = false;
+
+  // ── Swipe state ──
+  double _dragX = 0.0;
+  bool _isDragging = false;
+  static const double _swipeThreshold = 120.0;
+
   @override
   void initState() {
     super.initState();
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeInOutBack),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.vocabularies.isNotEmpty) {
-        _playCurrentWord();
-      }
+      if (widget.vocabularies.isNotEmpty) _playCurrentWord();
     });
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _flipController.dispose();
     super.dispose();
+  }
+
+  void _toggleFlip() {
+    if (_isFlipped) {
+      _flipController.reverse();
+    } else {
+      _flipController.forward();
+    }
+    setState(() => _isFlipped = !_isFlipped);
+  }
+
+  void _resetFlip() {
+    _flipController.value = 0;
+    _isFlipped = false;
   }
 
   Future<void> _playCurrentWord() async {
     if (_isAudioPlaying) return;
     setState(() => _isAudioPlaying = true);
-
     try {
       final vocab = widget.vocabularies[_currentIndex];
       final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
@@ -68,22 +98,18 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
       if (fullUrl.contains('192.168.') || fullUrl.contains('10.')) {
         fullUrl = fullUrl.replaceFirst('https://', 'http://').replaceFirst(':7014', ':5109');
       }
-
       await _audioPlayer.play(UrlSource(fullUrl)).timeout(const Duration(seconds: 5));
     } catch (e) {
       debugPrint('Audio Error: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isAudioPlaying = false);
-      }
+      if (mounted) setState(() => _isAudioPlaying = false);
     }
   }
 
   void _nextWord() {
+    _resetFlip();
     if (_currentIndex < widget.vocabularies.length - 1) {
-      setState(() {
-        _currentIndex++;
-      });
+      setState(() => _currentIndex++);
       _playCurrentWord();
     } else {
       _showCompletionScreen();
@@ -91,12 +117,33 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
   }
 
   void _prevWord() {
+    _resetFlip();
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-      });
+      setState(() => _currentIndex--);
       _playCurrentWord();
     }
+  }
+
+  // Swipe gesture handlers
+  void _onDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragX += details.delta.dx;
+      _isDragging = true;
+    });
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    if (_dragX > _swipeThreshold) {
+      // Swipe right → Known (go next)
+      _nextWord();
+    } else if (_dragX < -_swipeThreshold) {
+      // Swipe left → Unknown (go next too, but show red)
+      _nextWord();
+    }
+    setState(() {
+      _dragX = 0;
+      _isDragging = false;
+    });
   }
 
   void _showCompletionScreen() {
@@ -122,6 +169,7 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
                       const Text(
                         '🌟 FANTASTIC! 🌟',
                         style: TextStyle(
+                          fontFamily: 'FredokaOne',
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
@@ -132,52 +180,33 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
                       const Text(
                         'Con đã hoàn thành học từ vựng bài học này!',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                       ).animate().fade(delay: 300.ms).slideY(begin: 0.2),
                       const SizedBox(height: 32),
-                      // Floating balloons/stars emoji representation
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: ['🎈', '🎉', '🏆', '🎉', '🎈']
                             .asMap()
                             .entries
-                            .map(
-                              (entry) => Text(
-                                entry.value,
-                                style: const TextStyle(fontSize: 48),
-                              ).animate(delay: (entry.key * 150).ms).scale(duration: 500.ms).shake(),
-                            )
+                            .map((entry) => Text(entry.value, style: const TextStyle(fontSize: 48))
+                                .animate(delay: (entry.key * 150).ms)
+                                .scale(duration: 500.ms)
+                                .shake())
                             .toList(),
                       ),
                       const SizedBox(height: 48),
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context, true); // Return true to mark completed
-                        },
+                        onTap: () => Navigator.pop(context, true),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 5))],
                           ),
                           child: const Text(
                             'QUAY LẠI HOẠT ĐỘNG',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF102D54),
-                            ),
+                            style: TextStyle(fontFamily: 'FredokaOne', fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
                           ),
                         ),
                       ).animate().scale(delay: 800.ms),
@@ -202,298 +231,463 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
     }
 
     final vocab = widget.vocabularies[_currentIndex];
-    final double progress = (_currentIndex + 1) / widget.vocabularies.length;
-
-    // Harmonious background color list based on order index
-    final List<Color> bgGradientColors = [
-      const Color(0xFF3ea5ff),
-      const Color(0xFF03a566),
-      const Color(0xFFff5c9f),
-      const Color(0xFFff8c00),
-      const Color(0xFF7b3fa8),
-    ];
-    final themeColor = bgGradientColors[_currentIndex % bgGradientColors.length];
+    final double progressPct = (_currentIndex + 1) / widget.vocabularies.length;
+    const themeColor = Color(0xFFFF7E06);
 
     final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
     final baseUrl = dioBaseUrl.endsWith('/api/')
         ? dioBaseUrl.substring(0, dioBaseUrl.length - 5)
         : dioBaseUrl;
 
-    return Scaffold(
-      body: PlayfulBackground(
-        backgroundColors: [
-          themeColor.withOpacity(0.7),
-          themeColor,
-          themeColor.withOpacity(0.95),
-        ],
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Text(
-                      '${_currentIndex + 1} / ${widget.vocabularies.length}',
-                      style: const TextStyle(
-                        fontFamily: 'Fredoka One',
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 48), // Spacer
-                  ],
-                ),
-                const SizedBox(height: 12),
+    // Swipe-driven tint overlay
+    final bool isSwipingRight = _dragX > 20;
+    final bool isSwipingLeft = _dragX < -20;
+    final double swipeOpacity = (_dragX.abs() / _swipeThreshold).clamp(0.0, 0.7);
+    final Color swipeTint = isSwipingRight
+        ? Colors.green.withOpacity(swipeOpacity)
+        : isSwipingLeft
+            ? Colors.red.withOpacity(swipeOpacity)
+            : Colors.transparent;
 
-                // Linear progress indicator
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.white.withOpacity(0.3),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+    return Scaffold(
+      backgroundColor: const Color(0xFFEEF2FD),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            children: [
+              // Header Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Text(
+                    '${_currentIndex + 1} / ${widget.vocabularies.length}',
+                    style: const TextStyle(
+                      fontFamily: 'FredokaOne',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102D54),
+                    ),
+                  ),
+                  // Flip hint button
+                  IconButton(
+                    icon: const Icon(Icons.flip, color: Color(0xFFFF7E06), size: 26),
+                    tooltip: 'Tap card to flip',
+                    onPressed: _toggleFlip,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: progressPct),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutBack,
+                      builder: (ctx, value, _) => Stack(
+                        children: [
+                          Container(
+                            height: 8,
+                            width: constraints.maxWidth,
+                            color: const Color(0xFFCBD5E1),
+                          ),
+                          Container(
+                            height: 8,
+                            width: constraints.maxWidth * value,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF2E93),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // ── 3D Flip Card with Swipe ──
+              Expanded(
+                child: GestureDetector(
+                  onTap: _toggleFlip,
+                  onHorizontalDragUpdate: _onDragUpdate,
+                  onHorizontalDragEnd: _onDragEnd,
+                  onHorizontalDragCancel: () => setState(() {
+                    _dragX = 0;
+                    _isDragging = false;
+                  }),
+                  child: AnimatedBuilder(
+                    animation: _flipAnimation,
+                    builder: (context, child) {
+                      final angle = _flipAnimation.value * pi;
+                      final isShowingBack = angle > pi / 2;
+
+                      // Apply swipe offset + rotation
+                      final tiltAngle = _isDragging ? (_dragX / 600.0) : 0.0;
+
+                      return Transform(
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.001)
+                          ..rotateY(angle)
+                          ..rotateZ(tiltAngle)
+                          ..translate(_dragX * 0.6, 0.0, 0.0),
+                        alignment: Alignment.center,
+                        child: isShowingBack
+                            ? Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.identity()..rotateY(pi),
+                                child: _buildBackCard(vocab, swipeTint),
+                              )
+                            : _buildFrontCard(vocab, baseUrl, swipeTint, themeColor),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 24),
+              ),
 
-                // Vocabulary Card
-                Expanded(
-                  child: GlassCard(
-                    width: double.infinity,
-                    borderRadius: BorderRadius.circular(32),
-                    padding: const EdgeInsets.all(24),
-                    fillColor: Colors.white.withOpacity(0.35),
-                    borderColor: Colors.white.withOpacity(0.55),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              // Swipe hint labels
+              if (_isDragging)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AnimatedOpacity(
+                        opacity: isSwipingLeft ? swipeOpacity * 1.4 : 0,
+                        duration: 100.ms,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade400,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text('😅 Chưa thuộc', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+                        ),
+                      ),
+                      AnimatedOpacity(
+                        opacity: isSwipingRight ? swipeOpacity * 1.4 : 0,
+                        duration: 100.ms,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade400,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text('✅ Đã thuộc!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                const SizedBox(height: 16),
+
+              // Mascot
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text('🐼', style: TextStyle(fontSize: 44))
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .scaleY(begin: 1.0, end: 1.06, duration: 2.seconds, curve: Curves.easeInOut),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+                        ),
+                        child: Text(
+                          _isFlipped
+                              ? "Great! Swipe right if you know it 👉"
+                              : "Tap the card to reveal the meaning! 🔄",
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Navigation Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Opacity(
+                    opacity: _currentIndex > 0 ? 1.0 : 0.4,
+                    child: GestureDetector(
+                      onTap: _currentIndex > 0 ? _prevWord : null,
+                      child: Container(
+                        width: 52,
+                        height: 52,
+                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                        child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF102D54), size: 26),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _nextWord,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF2E93),
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [BoxShadow(color: const Color(0xFFFF2E93).withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
+                      child: Row(
                         children: [
-                          const SizedBox(height: 8),
-                          // Display Image or Emoji
-                          vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(24),
-                                  child: Image.network(
-                                    vocab.imageUrl!.startsWith('http')
-                                        ? vocab.imageUrl!
-                                        : '$baseUrl${vocab.imageUrl!.startsWith('/') ? '' : '/'}${vocab.imageUrl}',
-                                    headers: const {'User-Agent': 'KidioApp/1.0'},
-                                    height: 160,
-                                    width: 160,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (ctx, err, stack) => const Icon(
-                                      Icons.emoji_events_rounded,
-                                      size: 100,
-                                      color: Colors.orangeAccent,
-                                    ),
-                                  ),
-                                )
-                              : const Text(
-                                  '🐾',
-                                  style: TextStyle(fontSize: 100),
-                                ),
-                          const SizedBox(height: 16),
-
-                          // Word
                           Text(
-                            vocab.word,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Fredoka One',
-                              fontSize: 38,
-                              fontWeight: FontWeight.w900,
-                              color: themeColor,
-                              letterSpacing: 0.5,
-                            ),
-                          ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
-
-                          // Phonetic Text
-                          if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              vocab.phoneticText!,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontStyle: FontStyle.italic,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 20),
-
-                          // Play Audio Button
-                          GestureDetector(
-                            onTap: _playCurrentWord,
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: themeColor.withOpacity(0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _isAudioPlaying
-                                    ? Icons.volume_down_rounded
-                                    : Icons.volume_up_rounded,
-                                size: 36,
-                                color: themeColor,
-                              ),
-                            ).animate(target: _isAudioPlaying ? 1 : 0).scale(
-                                  begin: const Offset(1, 1),
-                                  end: const Offset(1.15, 1.15),
-                                  duration: 300.ms,
-                                  curve: Curves.easeInOut,
-                                ),
+                            _currentIndex == widget.vocabularies.length - 1 ? 'COMPLETED' : 'NEXT WORD',
+                            style: const TextStyle(fontFamily: 'FredokaOne', fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5),
                           ),
-                          const SizedBox(height: 24),
-
-                          // Meaning Translation
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Column(
-                              children: [
-                                const Text(
-                                  'Ý nghĩa',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blueGrey,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  vocab.meaning,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF102D54),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Example Sentence
-                          if (vocab.exampleSentence != null &&
-                              vocab.exampleSentence!.isNotEmpty) ...[
-                            const Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                'Example:',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueGrey,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                vocab.exampleSentence!,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontStyle: FontStyle.italic,
-                                  color: Colors.grey.shade800,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
                         ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                // Navigation Controls
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Back Button
-                    Opacity(
-                      opacity: _currentIndex > 0 ? 1.0 : 0.4,
-                      child: GestureDetector(
-                        onTap: _currentIndex > 0 ? _prevWord : null,
-                        child: Container(
-                          width: 56,
-                          height: 56,
-                          decoration: const BoxDecoration(
-                            color: Colors.white24,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Next / Finish Button
-                    GestureDetector(
-                      onTap: _nextWord,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              _currentIndex == widget.vocabularies.length - 1
-                                  ? 'HOÀN THÀNH'
-                                  : 'TỪ TIẾP THEO',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                color: themeColor,
+  // ── Front card (image + word) ──
+  Widget _buildFrontCard(Vocabulary vocab, String baseUrl, Color tintOverlay, Color themeColor) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: tintOverlay == Colors.transparent ? Colors.transparent : tintOverlay,
+          width: 3,
+        ),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // Upper half – orange background + image
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    width: double.infinity,
+                    color: const Color(0xFFFFEDD5),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: Image.network(
+                                  vocab.imageUrl!.startsWith('http')
+                                      ? vocab.imageUrl!
+                                      : '$baseUrl${vocab.imageUrl!.startsWith('/') ? '' : '/'}${vocab.imageUrl}',
+                                  headers: const {'User-Agent': 'KidioApp/1.0'},
+                                  height: 140,
+                                  width: 140,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (ctx, err, stack) => const Text('🐶', style: TextStyle(fontSize: 90)),
+                                ),
+                              )
+                            : const Text('🐶', style: TextStyle(fontSize: 90)),
+                        // Speaker button
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: GestureDetector(
+                            onTap: _playCurrentWord,
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.9),
+                                shape: BoxShape.circle,
+                                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                               ),
+                              child: const Icon(Icons.volume_up_rounded, color: Color(0xFFFF7E06), size: 22),
                             ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              color: themeColor,
-                              size: 20,
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        // "Tap to flip" hint
+                        Positioned(
+                          bottom: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.touch_app_rounded, size: 12, color: Color(0xFFFF7E06)),
+                                SizedBox(width: 4),
+                                Text('Tap to flip', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFFF7E06))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ),
+                // Lower half – white word info
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          vocab.word.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'FredokaOne',
+                            fontSize: 34,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFF7E06),
+                            letterSpacing: 1,
+                          ),
+                        ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
+                        if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            vocab.phoneticText!,
+                            style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.grey.shade500, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: _playCurrentWord,
+                          child: Container(
+                            width: 140,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFEAD2),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFFFC085), width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _isAudioPlaying ? 'PLAYING...' : 'Listen!',
+                                  style: const TextStyle(fontFamily: 'FredokaOne', fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFFD97706)),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.volume_up_rounded, color: Color(0xFFD97706), size: 16),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // Swipe tint overlay
+            if (tintOverlay != Colors.transparent)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: tintOverlay,
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Back card (meaning + example) ──
+  Widget _buildBackCard(Vocabulary vocab, Color tintOverlay) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF7E06), Color(0xFFFF5C9F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('📖', style: TextStyle(fontSize: 52)),
+                const SizedBox(height: 20),
+                Text(
+                  vocab.meaning,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'FredokaOne',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty)
+                  Text(
+                    vocab.phoneticText!,
+                    style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.white.withOpacity(0.85)),
+                  ),
+                const SizedBox(height: 28),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    '← Swipe left if unknown\nSwipe right if known →',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.white, height: 1.6),
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+          if (tintOverlay != Colors.transparent)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(color: tintOverlay, borderRadius: BorderRadius.circular(26)),
+              ),
+            ),
+        ],
       ),
     );
   }

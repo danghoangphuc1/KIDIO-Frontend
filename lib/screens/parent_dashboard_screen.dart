@@ -13,7 +13,8 @@ import 'create_profile_screen.dart';
 
 
 class ParentDashboardScreen extends StatefulWidget {
-  const ParentDashboardScreen({super.key});
+  final bool isTab;
+  const ParentDashboardScreen({super.key, this.isTab = false});
 
   @override
   State<ParentDashboardScreen> createState() => _ParentDashboardScreenState();
@@ -58,10 +59,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A237E)),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: widget.isTab
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF1A237E)),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: const Text(
           'Bảng điều khiển Phụ huynh',
           style: TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.bold, fontSize: 20),

@@ -140,12 +140,12 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Colors.purpleAccent),
+            CircularProgressIndicator(color: Colors.purpleAccent),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'AI đang nghe và chấm điểm...',
               style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
             ),
@@ -159,93 +159,25 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        title: const Center(
-          child: Text(
-            'Kết quả phát âm 🎤',
-            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.purple),
-          ),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Kết quả phát âm AI', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              score.overallScore >= 80
-                  ? 'Tuyệt vời! 🌟'
-                  : (score.overallScore >= 50 ? 'Khá tốt! 👍' : 'Cần cố gắng thêm! 💪'),
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: score.overallScore >= 80 ? Colors.green : Colors.orange,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Tổng điểm: ${score.overallScore.toInt()}/100',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
-            ),
+            Text('Điểm tổng quát: ${score.overallScore}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+            const SizedBox(height: 8),
+            Text('Độ chính xác: ${score.accuracyScore}'),
+            Text('Độ lưu loát: ${score.fluencyScore}'),
             const SizedBox(height: 12),
-            _buildScoreProgressRow('Độ chính xác', score.accuracyScore),
-            _buildScoreProgressRow('Độ lưu loát', score.fluencyScore),
-            _buildScoreProgressRow('Độ hoàn thiện', score.completenessScore),
+            Text('Phản hồi: ${score.feedback}'),
           ],
         ),
         actions: [
-          Center(
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purpleAccent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-              ),
-              child: const Text(
-                'Đóng',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
           )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScoreProgressRow(String label, int score) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 90,
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: score / 100,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: score >= 60 ? Colors.green : Colors.orange,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$score',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF102D54)),
-          ),
         ],
       ),
     );
@@ -253,40 +185,51 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
 
   void _generateQuestions() {
     final random = Random();
-    _questions = widget.vocabularies.map((vocab) {
+    List<QuizQuestion> questions = [];
+
+    // Each vocabulary is turned into a question
+    for (var vocab in widget.vocabularies) {
       final hasImage = vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty;
-      final questionText = hasImage ? "What is this?" : "Nghĩa của từ này là gì?";
-      final correctAnswer = hasImage ? vocab.word : vocab.meaning;
+      final qText = hasImage
+          ? 'What is this animal? 🐾'
+          : 'Từ này có nghĩa là gì? 🤔';
 
-      // Generate distractors
-      List<String> options = [correctAnswer];
-      final otherVocabs = widget.vocabularies.where((v) => v.id != vocab.id).toList();
-      otherVocabs.shuffle(random);
+      List<String> options = [vocab.meaning];
+      List<Vocabulary> distractors =
+          widget.vocabularies.where((v) => v.id != vocab.id).toList();
+      distractors.shuffle(random);
 
-      for (var v in otherVocabs) {
-        if (options.length >= 3) break;
-        options.add(hasImage ? v.word : v.meaning);
+      for (var d in distractors) {
+        if (options.length >= 4) break;
+        options.add(d.meaning);
+      }
+
+      while (options.length < 4 && widget.vocabularies.isNotEmpty) {
+        options.add(widget.vocabularies[random.nextInt(widget.vocabularies.length)].meaning);
       }
 
       options.shuffle(random);
 
-      return QuizQuestion(
+      questions.add(QuizQuestion(
         vocabulary: vocab,
         hasImage: hasImage,
-        questionText: questionText,
+        questionText: qText,
         options: options,
-        correctAnswer: correctAnswer,
-      );
-    }).toList();
-    _originalQuestionCount = _questions.length;
-    _questions.shuffle(random);
+        correctAnswer: vocab.meaning,
+      ));
+    }
+
+    questions.shuffle(random);
+    setState(() {
+      _questions = questions;
+      _originalQuestionCount = questions.length;
+      _currentIndex = 0;
+    });
   }
 
-  Future<void> _playTts(String text, {String? customAudioUrl, bool showLoading = true}) async {
-    if (showLoading) {
-      if (_isAudioPlaying) return;
-      setState(() => _isAudioPlaying = true);
-    }
+  Future<void> _playTts(String text, {String? customAudioUrl}) async {
+    if (_isAudioPlaying) return;
+    setState(() => _isAudioPlaying = true);
 
     try {
       final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
@@ -312,9 +255,9 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
 
       await _audioPlayer.play(UrlSource(fullUrl)).timeout(const Duration(seconds: 5));
     } catch (e) {
-      debugPrint('Audio Error: $e');
+      debugPrint('Audio Quiz Error: $e');
     } finally {
-      if (showLoading && mounted) {
+      if (mounted) {
         setState(() => _isAudioPlaying = false);
       }
     }
@@ -329,25 +272,35 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     setState(() {
       _selectedAnswer = option;
       _hasAnswered = true;
-      if (!isCorrect) {
-        _wrongAnswers.add(option);
-      }
     });
 
     if (isCorrect) {
-      _playTts(
-        "Excellent!",
-        customAudioUrl: 'https://dict.youdao.com/dictvoice?audio=excellent&type=1',
-        showLoading: false,
-      );
+      _playSystemSound(true);
+      Future.delayed(const Duration(milliseconds: 1600), _nextQuestion);
     } else {
-      _playTts(
-        "Oops, try again!",
-        customAudioUrl: 'https://dict.youdao.com/dictvoice?audio=oops+try+again&type=1',
-        showLoading: false,
-      );
-      // Add the wrong question to the end of the list so they have to do it again
-      _questions.add(currentQ);
+      _playSystemSound(false);
+      setState(() {
+        _wrongAnswers.add(option);
+      });
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          setState(() {
+            _selectedAnswer = null;
+            _hasAnswered = false;
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _playSystemSound(bool isCorrect) async {
+    try {
+      final soundPath = isCorrect
+          ? 'https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav'
+          : 'https://assets.mixkit.co/active_storage/sfx/2017/2017-84.wav';
+      await _audioPlayer.play(UrlSource(soundPath));
+    } catch (e) {
+      debugPrint('System Sound Error: $e');
     }
   }
 
@@ -355,12 +308,12 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     if (_currentIndex < _questions.length - 1) {
       setState(() {
         _currentIndex++;
-        _hasAnswered = false;
         _selectedAnswer = null;
+        _hasAnswered = false;
         _wrongAnswers.clear();
       });
     } else {
-      _showCompletionDialog();
+      _showCompletionScreen();
     }
   }
 
@@ -375,7 +328,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     }
   }
 
-  void _showCompletionDialog() {
+  void _showCompletionScreen() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -383,21 +336,22 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
           body: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                colors: [Color(0xFF7C3AED), Color(0xFFC084FC)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
             child: SafeArea(
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'SUPER QUIZ MASTER! 📝',
+                        '🏆 QUIZ COMPLETED! 🏆',
                         style: TextStyle(
+                          fontFamily: 'FredokaOne',
                           fontSize: 28,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
@@ -406,25 +360,16 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                       ).animate().shake(duration: 800.ms),
                       const SizedBox(height: 12),
                       const Text(
-                        'Con đã hoàn thành thử thách trắc nghiệm!',
-                        textAlign: TextAlign.center,
+                        'Con đã xuất sắc hoàn thành Quiz!',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 36),
-                      // Floating star rewards
-                      const Text('🏆', style: TextStyle(fontSize: 80))
-                          .animate()
-                          .scale(duration: 500.ms)
-                          .shake(),
                       const SizedBox(height: 48),
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context, true); // Return true to mark completed
-                        },
+                        onTap: () => Navigator.pop(context, true),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
                           decoration: BoxDecoration(
@@ -437,6 +382,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                           child: const Text(
                             'QUAY LẠI HOẠT ĐỘNG',
                             style: TextStyle(
+                              fontFamily: 'FredokaOne',
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF102D54),
@@ -473,312 +419,313 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
         ? dioBaseUrl.substring(0, dioBaseUrl.length - 5)
         : dioBaseUrl;
 
+    // Speech bubble text
+    String mascotText = "Find the correct matching animal for the question! 🐼";
+    if (_hasAnswered) {
+      final isCorrect = _selectedAnswer == currentQ.correctAnswer;
+      mascotText = isCorrect ? "Fantastic! That's correct! 🎉" : "Oops! Let's try again! 🌟";
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFEEF2FD),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFEEF2FD), Color(0xFFE0E7FF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
-                      onPressed: () => Navigator.pop(context),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Text(
+                    'Question ${_currentIndex + 1} / $_originalQuestionCount',
+                    style: const TextStyle(
+                      fontFamily: 'FredokaOne',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102D54),
                     ),
-                    Text(
-                      'Question ${_currentIndex < _originalQuestionCount ? _currentIndex + 1 : "Retry"} / $_originalQuestionCount',
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      '${(progressPercent * 100).toInt()}%',
                       style: const TextStyle(
-                        fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF102D54),
+                        color: Color(0xFFD97706),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
-                        borderRadius: BorderRadius.circular(16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Progress Bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: progressPercent,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFCBD5E1),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF2E93)),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Purple Gradient Question Card ──
+              Expanded(
+                flex: 4,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
-                      child: Text(
-                        '${(progressPercent * 100).toInt()}%',
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.purple),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // White rounded card for image/emoji
+                      Container(
+                        width: 140,
+                        height: 110,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: currentQ.hasImage
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.network(
+                                  currentQ.vocabulary.imageUrl!.startsWith('http')
+                                      ? currentQ.vocabulary.imageUrl!
+                                      : '$baseUrl${currentQ.vocabulary.imageUrl!.startsWith('/') ? '' : '/'}${currentQ.vocabulary.imageUrl}',
+                                  headers: const {'User-Agent': 'KidioApp/1.0'},
+                                  height: 90,
+                                  width: 120,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (ctx, err, stack) => const Text(
+                                    '🦁',
+                                    style: TextStyle(fontSize: 60),
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                '🦁',
+                                style: TextStyle(fontSize: 60),
+                              ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Question text
+                      Text(
+                        currentQ.questionText,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'FredokaOne',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── 2x2 grid of options ──
+              Expanded(
+                flex: 4,
+                child: GridView.builder(
+                  itemCount: currentQ.options.length,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.5,
+                  ),
+                  itemBuilder: (context, idx) {
+                    final option = currentQ.options[idx];
+                    final isSelected = _selectedAnswer == option;
+                    final isWrong = _wrongAnswers.contains(option);
+
+                    Color cardBorderColor = const Color(0xFFE2E8F0);
+                    Color cardColor = Colors.white;
+                    Color textColor = const Color(0xFF102D54);
+
+                    if (_hasAnswered && option == currentQ.correctAnswer) {
+                      cardColor = const Color(0xFFD1FAE5);
+                      cardBorderColor = const Color(0xFF10B981);
+                      textColor = const Color(0xFF065F46);
+                    } else if (isWrong) {
+                      cardColor = const Color(0xFFFFE4E6);
+                      cardBorderColor = const Color(0xFFF43F5E);
+                      textColor = const Color(0xFF9F1239);
+                    } else if (isSelected) {
+                      cardBorderColor = const Color(0xFF3B82F6);
+                    }
+
+                    // A, B, C, D label
+                    final String prefix = String.fromCharCode(65 + idx) + ". ";
+
+                    Widget optionCard = GestureDetector(
+                      onTap: () => _onOptionSelected(option),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: cardBorderColor, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          prefix + option,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'FredokaOne',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                    );
+
+                    if (isWrong) {
+                      optionCard = optionCard.animate().shake(duration: 500.ms, hz: 6);
+                    }
+
+                    return optionCard;
+                  },
+                ),
+              ),
+
+              // ── Mascot Section ──
+              Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 8),
+                child: Row(
+                  children: [
+                    const Text(
+                      '🐼',
+                      style: TextStyle(fontSize: 48),
+                    ).animate().shake(hz: 2, duration: 2.seconds),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black12.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                          ],
+                        ),
+                        child: Text(
+                          mascotText,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF102D54),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+              ),
 
-                // Progress Bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progressPercent,
-                    minHeight: 10,
-                    backgroundColor: Colors.blue.shade50,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Question Card
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          // Image / Text Display
-                          Container(
-                            constraints: const BoxConstraints(minHeight: 180),
-                            alignment: Alignment.center,
-                            child: currentQ.hasImage
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: Image.network(
-                                      currentQ.vocabulary.imageUrl!.startsWith('http')
-                                          ? currentQ.vocabulary.imageUrl!
-                                          : '$baseUrl${currentQ.vocabulary.imageUrl!.startsWith('/') ? '' : '/'}${currentQ.vocabulary.imageUrl}',
-                                      headers: const {'User-Agent': 'KidioApp/1.0'},
-                                      height: 160,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, stack) => const Icon(
-                                        Icons.emoji_events_rounded,
-                                        size: 100,
-                                        color: Colors.orangeAccent,
-                                      ),
-                                    ),
-                                  )
-                                : Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.psychology_alt_rounded,
-                                          size: 60, color: Colors.orangeAccent),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        currentQ.vocabulary.word,
-                                        style: const TextStyle(
-                                          fontFamily: 'Fredoka One',
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.w900,
-                                          color: Color(0xFF102D54),
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ).animate(key: ValueKey(currentQ.vocabulary.id)).shake(duration: 600.ms),
-                                      if (currentQ.vocabulary.phoneticText != null) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          currentQ.vocabulary.phoneticText!,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontStyle: FontStyle.italic,
-                                            color: Colors.blueGrey,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Question text
-                          Text(
-                            currentQ.questionText,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF102D54),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Audio and Mic row
-                          if (!_hasAnswered)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _isAudioPlaying
-                                    ? const Padding(
-                                        padding: EdgeInsets.all(12.0),
-                                        child: SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(color: Colors.blueAccent),
-                                        ),
-                                      )
-                                    : IconButton(
-                                        icon: const Icon(Icons.volume_up_rounded,
-                                            size: 36, color: Colors.blueAccent),
-                                        onPressed: () => _playTts(
-                                          currentQ.vocabulary.word,
-                                          customAudioUrl: currentQ.vocabulary.audioUrl,
-                                        ),
-                                      ),
-                                const SizedBox(width: 24),
-                                GestureDetector(
-                                  onTap: () {
-                                    if (_isRecording) {
-                                      _stopRecordingAndSubmit(currentQ.vocabulary.id);
-                                    } else {
-                                      _startRecording();
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _isRecording ? Colors.red.shade100 : Colors.purple.shade50,
-                                      boxShadow: _isRecording
-                                          ? [
-                                              BoxShadow(
-                                                color: Colors.red.withOpacity(0.4),
-                                                blurRadius: 10,
-                                                spreadRadius: 2,
-                                              )
-                                            ]
-                                          : [],
-                                    ),
-                                    child: Icon(
-                                      _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                                      size: 36,
-                                      color: _isRecording ? Colors.red : Colors.purple,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          const SizedBox(height: 24),
-
-                          // Option buttons list
-                          Column(
-                            children: currentQ.options.map((option) {
-                              final isSelected = _selectedAnswer == option;
-                              final isWrong = _wrongAnswers.contains(option);
-                              Color btnColor = Colors.grey.shade50;
-                              Color borderColor = Colors.grey.shade200;
-                              Color textColor = const Color(0xFF102D54);
-
-                              if (_hasAnswered && option == currentQ.correctAnswer) {
-                                btnColor = Colors.green.shade50;
-                                borderColor = Colors.green;
-                                textColor = Colors.green.shade800;
-                              } else if (isWrong) {
-                                btnColor = Colors.red.shade50;
-                                borderColor = Colors.red;
-                                textColor = Colors.red.shade800;
-                              } else if (isSelected) {
-                                borderColor = Colors.blueAccent;
-                              }
-
-                              Widget optionCard = Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: GestureDetector(
-                                  onTap: () => _onOptionSelected(option),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: btnColor,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: borderColor, width: 2.5),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      option,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w900,
-                                        color: textColor,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-
-                              if (isWrong) {
-                                optionCard = optionCard.animate().shake(duration: 500.ms, hz: 6);
-                              }
-
-                              return optionCard;
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Next/Back control buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              TextButton.icon(
-                                onPressed: _currentIndex > 0 ? _prevQuestion : () => Navigator.pop(context),
-                                icon: const Icon(Icons.arrow_back_rounded, color: Colors.blueGrey),
-                                label: Text(
-                                  _currentIndex > 0 ? 'Back' : 'Thoát',
-                                  style: const TextStyle(
-                                    color: Colors.blueGrey,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                              ElevatedButton(
-                                onPressed: _hasAnswered ? _nextQuestion : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE0E5EC),
-                                  foregroundColor: const Color(0xFF1A237E),
-                                  disabledBackgroundColor: const Color(0xFFE0E5EC).withOpacity(0.5),
-                                  disabledForegroundColor: Colors.grey,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                  elevation: 0,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      _currentIndex == _questions.length - 1 ? 'Hoàn thành' : 'Next',
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                                    ),
-                                    if (_currentIndex < _questions.length - 1) ...[
-                                      const SizedBox(width: 8),
-                                      const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                                    ]
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+              // Bottom control buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _currentIndex > 0 ? _prevQuestion : () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.blueGrey),
+                    label: Text(
+                      _currentIndex > 0 ? 'Back' : 'Thoát',
+                      style: const TextStyle(
+                        color: Colors.blueGrey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  GestureDetector(
+                    onTap: _hasAnswered ? _nextQuestion : null,
+                    child: Opacity(
+                      opacity: _hasAnswered ? 1.0 : 0.45,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF2E93),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF2E93).withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              _currentIndex == _questions.length - 1 ? 'Hoàn thành' : 'Next',
+                              style: const TextStyle(
+                                fontFamily: 'FredokaOne',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                            if (_currentIndex < _questions.length - 1) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                            ]
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

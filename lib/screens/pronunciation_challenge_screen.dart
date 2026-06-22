@@ -32,6 +32,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
   bool _isRecording = false;
   bool _isAudioPlaying = false;
   PronunciationScore? _currentScore;
+  bool _isScoring = false;
 
   @override
   void initState() {
@@ -115,13 +116,14 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
   Future<void> _stopAndSubmit() async {
     try {
       final path = await _audioRecorder.stop();
-      setState(() => _isRecording = false);
+      setState(() {
+        _isRecording = false;
+        _isScoring = true;
+      });
 
       if (path != null && mounted) {
         final file = File(path);
         if (await file.exists()) {
-          _showScoringOverlay();
-
           final pronProvider = context.read<PronunciationProvider>();
           final vocab = widget.vocabularies[_currentIndex];
 
@@ -132,7 +134,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
           );
 
           if (mounted) {
-            Navigator.pop(context); // Close scoring dialog
+            setState(() => _isScoring = false);
             final score = pronProvider.lastScore;
             if (score != null) {
               setState(() {
@@ -148,53 +150,27 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
         }
       }
     } catch (e) {
-      debugPrint('Error stopping record: $e');
-      setState(() => _isRecording = false);
+      setState(() => _isScoring = false);
+      debugPrint('Error submitting record: $e');
     }
   }
 
-  Future<void> _playTtsFeedback(bool success) async {
+  Future<void> _playTtsFeedback(bool isSuccess) async {
+    final ttsRepo = context.read<TtsRepository>();
     try {
-      if (success) {
-        await _audioPlayer.play(UrlSource(
-            'https://dict.youdao.com/dictvoice?audio=great+job&type=1'));
-      } else {
-        await _audioPlayer.play(UrlSource(
-            'https://dict.youdao.com/dictvoice?audio=try+again&type=1'));
-      }
+      final text = isSuccess ? "Great job!" : "Try again!";
+      final response = await ttsRepo.synthesize(text).timeout(const Duration(seconds: 4));
+      final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
+      final baseUrl = dioBaseUrl.endsWith('/api/')
+          ? dioBaseUrl.substring(0, dioBaseUrl.length - 5)
+          : dioBaseUrl;
+      String fullUrl = response.audioUrl.startsWith('http')
+          ? response.audioUrl
+          : '$baseUrl${response.audioUrl.startsWith('/') ? '' : '/'}${response.audioUrl}';
+      await _audioPlayer.play(UrlSource(fullUrl));
     } catch (e) {
-      debugPrint('Feedback voice error: $e');
+      debugPrint('Tts Feedback error: $e');
     }
-  }
-
-  void _showScoringOverlay() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: Colors.pinkAccent),
-            const SizedBox(height: 20),
-            const Text(
-              'AI is evaluating...',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF102D54),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Đang lắng nghe và chấm điểm phát âm!',
-              style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _nextWord() {
@@ -203,12 +179,13 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
         _currentIndex++;
         _currentScore = null;
       });
+      _playCurrentWord();
     } else {
-      _showChallengeComplete();
+      _showCompletionScreen();
     }
   }
 
-  void _showChallengeComplete() {
+  void _showCompletionScreen() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -216,21 +193,22 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
           body: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFFF2E93), Color(0xFF8B5CF6)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
             child: SafeArea(
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
                         'YOU ARE A STAR! 🎤',
                         style: TextStyle(
+                          fontFamily: 'FredokaOne',
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
@@ -239,7 +217,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                       ).animate().shake(duration: 800.ms),
                       const SizedBox(height: 12),
                       const Text(
-                        'Con phát âm rất chuẩn xác!',
+                        'Con phát âm rất xuất sắc!',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -247,7 +225,6 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                         ),
                       ),
                       const SizedBox(height: 36),
-                      // Medal representation
                       const Text('🏆', style: TextStyle(fontSize: 80))
                           .animate()
                           .scale(duration: 500.ms)
@@ -267,6 +244,7 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                           child: const Text(
                             'QUAY LẠI HOẠT ĐỘNG',
                             style: TextStyle(
+                              fontFamily: 'FredokaOne',
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF102D54),
@@ -295,310 +273,457 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
     }
 
     final vocab = widget.vocabularies[_currentIndex];
-    final double progress = (_currentIndex + 1) / widget.vocabularies.length;
+    final double progressPct = (_currentIndex + 1) / widget.vocabularies.length;
+
+    // Speech bubble text builder
+    String mascotText = "Say: '${vocab.word.toUpperCase()}' into the mic! 🐼";
+    if (_isRecording) {
+      mascotText = "Listening... Speak now! 🎤";
+    } else if (_isScoring) {
+      mascotText = "Evaluating your pronunciation... Please wait! ⌛";
+    } else if (_currentScore != null) {
+      if (_currentScore!.overallScore >= 80) {
+        mascotText = "Awesome job! You got ${_currentScore!.overallScore}% accuracy! 🌟";
+      } else {
+        mascotText = "Good try! You got ${_currentScore!.overallScore}% accuracy. Try again! 👍";
+      }
+    }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF0F5),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFFF0F5), Color(0xFFFFD1DF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              children: [
-                // Top header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Text(
-                      'Word ${_currentIndex + 1}/${widget.vocabularies.length}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF102D54),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Progress Bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.pink.shade50,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.pinkAccent),
+      backgroundColor: const Color(0xFFEEF2FD),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            children: [
+              // Header row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-                const SizedBox(height: 24),
-
-                // Vocabulary Card Area
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
+                  const Text(
+                    'AI Pronunciation',
+                    style: TextStyle(
+                      fontFamily: 'FredokaOne',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102D54),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_currentScore?.overallScore ?? 0}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFD97706),
+                          ),
                         ),
                       ],
                     ),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'SPEAK THIS WORD 🎤',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.pinkAccent,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-                          // Target Word text
-                          Text(
-                            vocab.word,
-                            style: const TextStyle(
-                              fontFamily: 'Fredoka One',
-                              fontSize: 40,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF102D54),
-                            ),
-                          ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: progressPct,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFCBD5E1),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF2E93)),
+                ),
+              ),
+              const SizedBox(height: 24),
 
-                          // Listen sound helper
-                          const SizedBox(height: 10),
-                          GestureDetector(
-                            onTap: _playCurrentWord,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.volume_up_rounded, color: Colors.blue.shade700, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Nghe trước',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Record button or AI feedback results
-                          if (_currentScore == null) ...[
-                            // Big microphone record button
-                            GestureDetector(
-                              onTap: () {
-                                if (_isRecording) {
-                                  _stopAndSubmit();
-                                } else {
-                                  _startRecording();
-                                }
-                              },
-                              child: Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _isRecording ? Colors.red : Colors.pinkAccent,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: (_isRecording ? Colors.red : Colors.pinkAccent)
-                                          .withOpacity(0.3),
-                                      blurRadius: 16,
-                                      spreadRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                                  size: 48,
-                                  color: Colors.white,
-                                ),
-                              ).animate(target: _isRecording ? 1 : 0).scale(
-                                    begin: const Offset(1, 1),
-                                    end: const Offset(1.15, 1.15),
-                                    duration: 500.ms,
-                                    curve: Curves.easeInOut,
-                                  ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _isRecording ? 'Đang ghi âm... Nhấn để dừng' : 'Chạm để nói',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: _isRecording ? Colors.red : Colors.grey.shade600,
-                              ),
-                            ),
-                          ] else ...[
-                            // Display Score Ring & stats
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+              // ── Details Card (Orange Header, White Bottom) ──
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: Column(
+                      children: [
+                        // Upper Orange Half
+                        Expanded(
+                          flex: 5,
+                          child: Container(
+                            width: double.infinity,
+                            color: const Color(0xFFFFEDD5),
+                            padding: const EdgeInsets.all(20),
+                            child: Stack(
+                              alignment: Alignment.center,
                               children: [
-                                // Score Ring
-                                Container(
-                                  width: 100,
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _currentScore!.overallScore >= 60
-                                        ? Colors.green.shade50
-                                        : Colors.orange.shade50,
-                                    border: Border.all(
-                                      color: _currentScore!.overallScore >= 60
-                                          ? Colors.green
-                                          : Colors.orange,
-                                      width: 8,
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'TARGET WORD',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFFEA580C),
+                                        letterSpacing: 1,
+                                      ),
                                     ),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      vocab.word.toUpperCase(),
+                                      style: const TextStyle(
+                                        fontFamily: 'FredokaOne',
+                                        fontSize: 42,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFFFF7E06),
+                                      ),
+                                    ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
+                                    if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
                                       Text(
-                                        '${_currentScore!.overallScore}',
+                                        vocab.phoneticText!,
                                         style: TextStyle(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.w900,
-                                          color: _currentScore!.overallScore >= 60
-                                              ? Colors.green.shade800
-                                              : Colors.orange.shade800,
+                                          fontSize: 16,
+                                          fontStyle: FontStyle.italic,
+                                          color: Colors.grey.shade600,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      const Text(
-                                        'score',
-                                        style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-                                      ),
                                     ],
-                                  ),
-                                ).animate().scale(duration: 400.ms),
-
-                                const SizedBox(width: 24),
-                                // Sub stats
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildScoreRow('Accuracy', _currentScore!.accuracyScore),
-                                    _buildScoreRow('Fluency', _currentScore!.fluencyScore),
-                                    _buildScoreRow('Complete', _currentScore!.completenessScore),
                                   ],
                                 ),
+
+                                // Speaker button top-right
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: _playCurrentWord,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: const [
+                                          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.volume_up_rounded,
+                                        color: Color(0xFFFF7E06),
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 20),
+                          ),
+                        ),
 
-                            // Feedback message
-                            Text(
-                              _currentScore!.feedback.isNotEmpty
-                                  ? _currentScore!.feedback
-                                  : (_currentScore!.overallScore >= 80
-                                      ? 'Excellent pronunciation! 🌟'
-                                      : 'Good job! Keep practicing! 👍'),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF102D54),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Retry or Next buttons
-                            Row(
+                        // Lower White Half (horizontal waveform visualizer pills)
+                        Expanded(
+                          flex: 5,
+                          child: Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _currentScore = null;
-                                    });
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.pinkAccent,
-                                    side: const BorderSide(color: Colors.pinkAccent, width: 2),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                if (_currentScore == null) ...[
+                                  const Text(
+                                    'TAP THE MIC AND TALK',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.grey,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  label: const Text('NÓI LẠI', style: TextStyle(fontWeight: FontWeight.w900)),
-                                ),
-                                const SizedBox(width: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _nextWord,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.pinkAccent,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                    elevation: 2,
+                                  const SizedBox(height: 20),
+
+                                  // Horizontal animated visualizer waveform pills (5 bars)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(5, (idx) {
+                                      return Container(
+                                        width: 14,
+                                        height: _isRecording ? (25 + idx * 10.0) : 15,
+                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        decoration: BoxDecoration(
+                                          color: _isRecording ? const Color(0xFFFF7E06) : const Color(0xFFCBD5E1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ).animate(
+                                        target: _isRecording ? 1 : 0,
+                                        onPlay: (controller) => controller.repeat(reverse: true),
+                                      ).scaleY(
+                                        begin: 0.5,
+                                        end: 1.5,
+                                        duration: Duration(milliseconds: 300 + idx * 100),
+                                      );
+                                    }),
                                   ),
-                                  icon: const Icon(Icons.arrow_forward_rounded),
-                                  label: const Text('TIẾP THEO', style: TextStyle(fontWeight: FontWeight.w900)),
-                                ),
+                                ] else ...[
+                                  // Score display
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _currentScore!.overallScore >= 60
+                                              ? const Color(0xFFD1FAE5)
+                                              : const Color(0xFFFFE4E6),
+                                          border: Border.all(
+                                            color: _currentScore!.overallScore >= 60
+                                                ? const Color(0xFF10B981)
+                                                : const Color(0xFFF43F5E),
+                                            width: 6,
+                                          ),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          '${_currentScore!.overallScore}',
+                                          style: TextStyle(
+                                            fontFamily: 'FredokaOne',
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.w900,
+                                            color: _currentScore!.overallScore >= 60
+                                                ? const Color(0xFF065F46)
+                                                : const Color(0xFF9F1239),
+                                          ),
+                                        ),
+                                      ).animate().scale(duration: 400.ms),
+                                      const SizedBox(width: 20),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          _buildScoreMiniBar('Accuracy', _currentScore!.accuracyScore),
+                                          _buildScoreMiniBar('Fluency', _currentScore!.fluencyScore),
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
-                          ],
-                        ],
-                      ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Large Blue Circular Microphone Button ──
+              if (!_isScoring && _currentScore == null)
+                GestureDetector(
+                  onTap: () {
+                    if (_isRecording) {
+                      _stopAndSubmit();
+                    } else {
+                      _startRecording();
+                    }
+                  },
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFE0F2FE),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF38BDF8).withOpacity(0.4),
+                          blurRadius: _isRecording ? 24 : 12,
+                          spreadRadius: _isRecording ? 6 : 2,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 74,
+                      height: 74,
+                      decoration: BoxDecoration(
+                        color: _isRecording ? const Color(0xFFEF4444) : const Color(0xFF0284C7),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                        color: Colors.white,
+                        size: 38,
+                      ),
+                    ),
+                  ),
+                ).animate(target: _isRecording ? 1 : 0).scale(
+                      begin: const Offset(1, 1),
+                      end: const Offset(1.08, 1.08),
+                      duration: 400.ms,
+                      curve: Curves.easeInOut,
+                    )
+              else if (_currentScore != null)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Speak again button
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _currentScore = null;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFFF2E93), width: 2),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.refresh_rounded, color: Color(0xFFFF2E93), size: 18),
+                            SizedBox(width: 6),
+                            Text(
+                              'SPEAK AGAIN',
+                              style: TextStyle(
+                                fontFamily: 'FredokaOne',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFFFF2E93),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Next word button
+                    GestureDetector(
+                      onTap: _nextWord,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF2E93),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF2E93).withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          children: [
+                            Text(
+                              'NEXT WORD',
+                              style: TextStyle(
+                                fontFamily: 'FredokaOne',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 6),
+                            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                const SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: CircularProgressIndicator(strokeWidth: 4),
+                ),
+              const SizedBox(height: 20),
+
+              // ── Mascot Section ──
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    const Text(
+                      '🐼',
+                      style: TextStyle(fontSize: 48),
+                    ).animate().shake(hz: 2, duration: 2.seconds),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black12.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                          ],
+                        ),
+                        child: Text(
+                          mascotText,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF102D54),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildScoreRow(String label, int score) {
+  Widget _buildScoreMiniBar(String label, int score) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-            ),
+          Text(
+            '$label: $score%',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey),
           ),
+          const SizedBox(height: 4),
           Container(
-            width: 80,
+            width: 120,
             height: 6,
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
@@ -609,16 +734,11 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
               widthFactor: score / 100,
               child: Container(
                 decoration: BoxDecoration(
-                  color: score >= 60 ? Colors.green : Colors.orange,
+                  color: score >= 60 ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$score',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF102D54)),
           ),
         ],
       ),

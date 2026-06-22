@@ -9,6 +9,9 @@ import '../providers/child_provider.dart';
 import '../providers/progress_provider.dart';
 import 'topic_detail_screen.dart';
 import 'achievements_screen.dart';
+import 'quest_screen.dart';
+import 'parent_dashboard_screen.dart';
+import '../widgets/parent_pin_dialogs.dart';
 import '../widgets/glassmorphic_widgets.dart';
 
 class TopicsListScreen extends StatefulWidget {
@@ -75,13 +78,17 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildTopicsGrid(),
-      const AchievementsScreen(),
+      const QuestScreen(isTab: true),
+      const AchievementsScreen(isTab: true),
+      const ParentDashboardScreen(isTab: true),
     ];
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        toolbarHeight: _isSearching ? 80 : 70,
+      extendBodyBehindAppBar: _currentIndex != 3,
+      appBar: _currentIndex == 3
+          ? null
+          : AppBar(
+              toolbarHeight: _isSearching ? 80 : 70,
         backgroundColor: Colors.white.withOpacity(0.15),
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -100,10 +107,22 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 final selectedChild = childProvider.selectedChild;
                 final stars = selectedChild?.totalStars ?? 0;
                 
+                if (_currentIndex == 2) {
+                  return const Text(
+                    'Treasure Room',
+                    style: TextStyle(
+                      fontFamily: 'FredokaOne',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E3A8A),
+                    ),
+                  );
+                }
                 if (_currentIndex == 1) {
                   return const Text(
-                    'Thành tích của con',
+                    'Daily Quests',
                     style: TextStyle(
+                      fontFamily: 'FredokaOne',
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF1E3A8A),
@@ -245,29 +264,61 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: BottomNavigationBar(
               currentIndex: _currentIndex,
-              onTap: (index) {
-                setState(() {
-                  _currentIndex = index;
-                  _isSearching = false;
-                });
+              onTap: (index) async {
+                if (index == 3) {
+                  final authProvider = context.read<AuthProvider>();
+                  final hasPin = await authProvider.hasParentPin();
+                  if (!mounted) return;
+                  if (hasPin) {
+                    ParentPinDialogs.showVerifyPinDialog(
+                      context,
+                      onSuccess: () {
+                        setState(() {
+                          _currentIndex = 3;
+                          _isSearching = false;
+                        });
+                      },
+                    );
+                  } else {
+                    setState(() {
+                      _currentIndex = 3;
+                      _isSearching = false;
+                    });
+                  }
+                } else {
+                  setState(() {
+                    _currentIndex = index;
+                    _isSearching = false;
+                  });
+                }
               },
               backgroundColor: Colors.white.withOpacity(0.15),
               elevation: 0,
               type: BottomNavigationBarType.fixed,
-              selectedItemColor: Colors.blueAccent,
-              unselectedItemColor: Colors.blueGrey.shade300,
+              selectedItemColor: const Color(0xFFFF2E93),
+              unselectedItemColor: const Color(0xFF94A3B8),
               selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
               items: const [
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.auto_stories_rounded, size: 28),
-                  activeIcon: Icon(Icons.auto_stories_rounded, size: 30),
-                  label: 'BÀI HỌC',
+                  icon: Icon(Icons.map_rounded, size: 26),
+                  activeIcon: Icon(Icons.map_rounded, size: 28),
+                  label: 'Map',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.workspace_premium_rounded, size: 28),
-                  activeIcon: Icon(Icons.workspace_premium_rounded, size: 30),
-                  label: 'THÀNH TÍCH',
+                  icon: Icon(Icons.flash_on_rounded, size: 26),
+                  activeIcon: Icon(Icons.flash_on_rounded, size: 28),
+                  label: 'Quests',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.emoji_events_rounded, size: 26),
+                  activeIcon: Icon(Icons.emoji_events_rounded, size: 28),
+                  label: 'Awards',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.people_alt_rounded, size: 26),
+                  activeIcon: Icon(Icons.people_alt_rounded, size: 28),
+                  label: 'Parent',
                 ),
               ],
             ),
@@ -398,61 +449,68 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
   }
 
   Widget _buildDailyQuestCard(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.only(bottom: 24),
-      borderRadius: BorderRadius.circular(24),
-      padding: const EdgeInsets.all(16),
-      fillColor: Colors.amber.shade50.withOpacity(0.35),
-      borderColor: Colors.amber.shade200.withOpacity(0.6),
-      borderWidth: 2.5,
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B),
-              borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentIndex = 1;
+        });
+      },
+      child: GlassCard(
+        margin: const EdgeInsets.only(bottom: 24),
+        borderRadius: BorderRadius.circular(24),
+        padding: const EdgeInsets.all(16),
+        fillColor: Colors.amber.shade50.withOpacity(0.35),
+        borderColor: Colors.amber.shade200.withOpacity(0.6),
+        borderWidth: 2.5,
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: const Text('🏆', style: TextStyle(fontSize: 28)),
             ),
-            alignment: Alignment.center,
-            child: const Text('🏆', style: TextStyle(fontSize: 28)),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Nhiệm Vụ Hàng Ngày',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF78350F),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nhiệm Vụ Hàng Ngày',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF78350F),
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Hoàn thành 1 bài học để nhận thêm 10 ⭐!',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF92400E),
-                    fontWeight: FontWeight.w600,
+                  SizedBox(height: 2),
+                  Text(
+                    'Hoàn thành 1 bài học để nhận thêm 10 ⭐!',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF92400E),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(6)),
-                  child: LinearProgressIndicator(
-                    value: 0.0,
-                    backgroundColor: Color(0xFFFEF3C7),
-                    color: Color(0xFFF59E0B),
-                    minHeight: 8,
+                  SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.all(Radius.circular(6)),
+                    child: LinearProgressIndicator(
+                      value: 0.0,
+                      backgroundColor: Color(0xFFFEF3C7),
+                      color: Color(0xFFF59E0B),
+                      minHeight: 8,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
