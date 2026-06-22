@@ -36,6 +36,7 @@ class PronunciationProvider extends ChangeNotifier {
   }
 
   Future<void> submitPronunciation({
+    required String childId,
     required String vocabularyId,
     required File audioFile,
     String? lessonId,
@@ -47,6 +48,7 @@ class PronunciationProvider extends ChangeNotifier {
 
     try {
       _lastScore = await _repository.submitPronunciation(
+        childId: childId,
         vocabularyId: vocabularyId,
         audioFile: audioFile,
         lessonId: lessonId,

@@ -8,6 +8,7 @@ class PronunciationApi {
   PronunciationApi(this._dio);
 
   Future<PronunciationScore> submitPronunciation({
+    required String childId,
     required String vocabularyId,
     required File audioFile,
     String? lessonId,
@@ -18,6 +19,7 @@ class PronunciationApi {
         fileName = '${fileName.split('.').first}.wav';
       }
       FormData formData = FormData.fromMap({
+        'ChildId': childId,
         'VocabularyId': vocabularyId,
         if (lessonId != null) 'LessonId': lessonId,
         'AudioFile': await MultipartFile.fromFile(audioFile.path, filename: fileName),

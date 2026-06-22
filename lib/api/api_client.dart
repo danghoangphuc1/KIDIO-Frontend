@@ -62,7 +62,8 @@ class ApiClient {
 
     _dio.interceptors.add(InterceptorsWrapper(
       onError: (DioException e, handler) async {
-        if (e.response?.statusCode == 401 && onRefreshToken != null) {
+        final path = e.requestOptions.path.toLowerCase();
+        if (e.response?.statusCode == 401 && onRefreshToken != null && !path.contains('refresh') && !path.contains('login')) {
           final success = await onRefreshToken!();
           if (success) {
             final options = e.requestOptions;
