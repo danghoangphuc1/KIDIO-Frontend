@@ -321,12 +321,12 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
                                     height: 160,
                                     width: 160,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (ctx, err, stack) => const Text('🐾', style: TextStyle(fontSize: 100)),
+                                    errorBuilder: (ctx, err, stack) => Text(_getEmoji(vocab.word), style: const TextStyle(fontSize: 100)),
                                   ),
                                 );
                               }
                               
-                              return const Text('🐾', style: TextStyle(fontSize: 100));
+                              return Text(_getEmoji(vocab.word), style: const TextStyle(fontSize: 100));
                             }
                           ),
                           const SizedBox(height: 16),
@@ -523,5 +523,62 @@ class _VocabLearnScreenState extends State<VocabLearnScreen> {
         ),
       ),
     );
+  }
+
+  String _getEmoji(String word) {
+    final w = word.toLowerCase().trim();
+    if (w.contains('cat')) return '🐱';
+    if (w.contains('dog')) return '🐶';
+    if (w.contains('bird')) return '🐦';
+    if (w.contains('fish')) return '🐠';
+    if (w.contains('lion')) return '🦁';
+    if (w.contains('elephant')) return '🐘';
+    if (w.contains('tiger')) return '🐯';
+    if (w.contains('monkey')) return '🐵';
+    if (w.contains('bear')) return '🐻';
+    if (w.contains('panda')) return '🐼';
+    if (w.contains('rabbit')) return '🐰';
+    if (w.contains('cow')) return '🐄';
+    if (w.contains('sheep')) return '🐑';
+    if (w.contains('pig')) return '🐷';
+    if (w.contains('apple')) return '🍎';
+    if (w.contains('banana')) return '🍌';
+    if (w.contains('orange')) return '🍊';
+    if (w.contains('grape')) return '🍇';
+    if (w.contains('mango')) return '🥭';
+    if (w.contains('carrot')) return '🥕';
+    if (w.contains('potato')) return '🥔';
+    if (w.contains('tomato')) return '🍅';
+    if (w.contains('cucumber')) return '🥒';
+    if (w.contains('milk')) return '🥛';
+    if (w.contains('bread')) return '🍞';
+    if (w.contains('family')) return '👪';
+    if (w.contains('mother') || w.contains('mom')) return '👩';
+    if (w.contains('father') || w.contains('dad')) return '👨';
+    if (w.contains('brother')) return '👦';
+    if (w.contains('sister')) return '👧';
+    if (w.contains('baby')) return '👶';
+    if (w.contains('school')) return '🎒';
+    if (w.contains('book')) return '📚';
+    if (w.contains('pencil')) return '✏️';
+    if (w.contains('teacher')) return '👩‍🏫';
+    if (w.contains('desk')) return '🪑';
+    if (w.contains('car')) return '🚗';
+    if (w.contains('bus')) return '🚌';
+    if (w.contains('bike') || w.contains('bicycle')) return '🚲';
+    if (w.contains('red')) return '🔴';
+    if (w.contains('blue')) return '🔵';
+    if (w.contains('green')) return '🟢';
+    if (w.contains('yellow')) return '🟡';
+    if (w.contains('one')) return '1️⃣';
+    if (w.contains('two')) return '2️⃣';
+    if (w.contains('three')) return '3️⃣';
+    if (w.contains('circle')) return '⭕';
+    if (w.contains('square')) return '⬛';
+    if (w.contains('triangle')) return '🔺';
+    if (w.contains('sunny')) return '☀️';
+    if (w.contains('rainy')) return '🌧️';
+    if (w.contains('windy')) return '💨';
+    return '✨';
   }
 }

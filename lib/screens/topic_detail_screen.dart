@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import '../models/kidio_models.dart';
 import '../repositories/lesson_repository.dart';
@@ -62,6 +63,20 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
           widget.topicName,
           style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.w900),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, color: Colors.blueAccent),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (context) => _buildScoringGuideSheet(),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: FutureBuilder<List<Lesson>>(
         future: _lessonsFuture,
@@ -86,7 +101,29 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
               final lesson = lessons[index];
               
               // Kiểm tra xem bài học này đã xong chưa từ API Progress
-              final isDone = progressProvider.completedLessons.any((p) => p.lessonId == lesson.id);
+              final lessonProgresses = progressProvider.completedLessons.where((p) => p.lessonId == lesson.id).toList();
+              final isDone = lessonProgresses.isNotEmpty;
+              final starsEarned = isDone ? lessonProgresses.first.starsEarned : 0;
+              final starsText = List.filled(starsEarned > 0 ? starsEarned : 1, '⭐').join('');
+
+              int completedGames = 0;
+              if (!isDone) {
+                try {
+                  final cacheBox = Hive.box('kidio_cache');
+                  if (cacheBox.get('${childId}_lesson_${lesson.id}_vocab', defaultValue: false)) completedGames++;
+                  if (cacheBox.get('${childId}_lesson_${lesson.id}_listening', defaultValue: false)) completedGames++;
+                  if (cacheBox.get('${childId}_lesson_${lesson.id}_pron', defaultValue: false)) completedGames++;
+                  if (cacheBox.get('${childId}_lesson_${lesson.id}_quiz', defaultValue: false)) completedGames++;
+                  if (cacheBox.get('${childId}_lesson_${lesson.id}_boss', defaultValue: false)) completedGames++;
+                } catch (_) {}
+              }
+
+              String subtitleText;
+              if (isDone) {
+                subtitleText = starsEarned > 0 ? 'Đã nhận $starsEarned sao! $starsText' : 'Chưa đạt đủ điểm nhận sao';
+              } else {
+                subtitleText = completedGames > 0 ? 'Tiến độ: $completedGames/5 phần thi' : (lesson.description ?? 'Nhấn để bắt đầu học');
+              }
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -123,8 +160,13 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    isDone ? 'Đã hoàn thành xuất sắc! ✨' : (lesson.description ?? 'Nhấn để bắt đầu học'),
-                    style: TextStyle(color: isDone ? Colors.green : Colors.blueGrey, fontWeight: isDone ? FontWeight.bold : FontWeight.normal),
+                    subtitleText,
+                    style: TextStyle(
+                      color: isDone 
+                          ? (starsEarned > 0 ? Colors.green : Colors.orange) 
+                          : (completedGames > 0 ? Colors.blueAccent : Colors.blueGrey), 
+                      fontWeight: (isDone || completedGames > 0) ? FontWeight.bold : FontWeight.normal
+                    ),
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: Colors.grey),
                   onTap: () async {
@@ -140,6 +182,92 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildScoringGuideSheet() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(3))),
+              ),
+              const SizedBox(height: 24),
+              const Row(
+                children: [
+                  Text('🌟', style: TextStyle(fontSize: 28)),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Cách Tính Điểm Thưởng',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A237E)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Để nhận được sao, con chỉ cần hoàn thành đầy đủ tất cả 5 thử thách trong bài học! Rất đơn giản phải không nào?',
+                style: TextStyle(fontSize: 14, color: Colors.blueGrey, height: 1.5, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              _buildScoreRuleItem('⭐⭐⭐', 'Tuyệt Vời!', 'Hoàn thành 5/5 thử thách', Colors.amber),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Đã Rõ Luật Chơi!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreRuleItem(String stars, String title, String range, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Text(stars, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: color.withOpacity(0.8))),
+                const SizedBox(height: 4),
+                Text(range, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -68,20 +68,34 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
     if (w.contains('bear')) return '🐻';
     if (w.contains('panda')) return '🐼';
     if (w.contains('rabbit')) return '🐰';
+    if (w.contains('cow')) return '🐄';
+    if (w.contains('sheep')) return '🐑';
+    if (w.contains('pig')) return '🐷';
     if (w.contains('apple')) return '🍎';
     if (w.contains('banana')) return '🍌';
     if (w.contains('orange')) return '🍊';
     if (w.contains('grape')) return '🍇';
+    if (w.contains('mango')) return '🥭';
+    if (w.contains('carrot')) return '🥕';
+    if (w.contains('potato')) return '🥔';
+    if (w.contains('tomato')) return '🍅';
+    if (w.contains('cucumber')) return '🥒';
     if (w.contains('milk')) return '🥛';
     if (w.contains('bread')) return '🍞';
     if (w.contains('family')) return '👪';
     if (w.contains('mother') || w.contains('mom')) return '👩';
     if (w.contains('father') || w.contains('dad')) return '👨';
+    if (w.contains('brother')) return '👦';
+    if (w.contains('sister')) return '👧';
     if (w.contains('baby')) return '👶';
     if (w.contains('school')) return '🎒';
     if (w.contains('book')) return '📚';
     if (w.contains('pencil')) return '✏️';
     if (w.contains('teacher')) return '👩‍🏫';
+    if (w.contains('desk')) return '🪑';
+    if (w.contains('car')) return '🚗';
+    if (w.contains('bus')) return '🚌';
+    if (w.contains('bike') || w.contains('bicycle')) return '🚲';
     if (w.contains('red')) return '🔴';
     if (w.contains('blue')) return '🔵';
     if (w.contains('green')) return '🟢';
@@ -89,6 +103,12 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
     if (w.contains('one')) return '1️⃣';
     if (w.contains('two')) return '2️⃣';
     if (w.contains('three')) return '3️⃣';
+    if (w.contains('circle')) return '⭕';
+    if (w.contains('square')) return '⬛';
+    if (w.contains('triangle')) return '🔺';
+    if (w.contains('sunny')) return '☀️';
+    if (w.contains('rainy')) return '🌧️';
+    if (w.contains('windy')) return '💨';
     return '✨';
   }
 
@@ -346,6 +366,11 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
     final round = _rounds[_currentRoundIndex];
     final double progress = (_currentRoundIndex + 1) / _rounds.length;
 
+    final dioBaseUrl = context.read<ApiClient>().dio.options.baseUrl;
+    final baseUrl = dioBaseUrl.endsWith('/api/')
+        ? dioBaseUrl.substring(0, dioBaseUrl.length - 5)
+        : dioBaseUrl;
+
     return Scaffold(
       backgroundColor: const Color(0xFFE6FFFA),
       body: Container(
@@ -518,9 +543,47 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                _getEmoji(option.word),
-                                style: const TextStyle(fontSize: 54),
+                              Builder(
+                                builder: (context) {
+                                  final wordLower = option.word.toLowerCase();
+                                  final mockImages = {
+                                    'dog': 'https://cdn-icons-png.flaticon.com/512/616/616408.png',
+                                    'cat': 'https://cdn-icons-png.flaticon.com/512/616/616430.png',
+                                    'cow': 'https://cdn-icons-png.flaticon.com/512/2395/2395796.png',
+                                    'one': 'https://cdn-icons-png.flaticon.com/512/3840/3840745.png',
+                                    'two': 'https://cdn-icons-png.flaticon.com/512/3840/3840750.png',
+                                    'three': 'https://cdn-icons-png.flaticon.com/512/3840/3840754.png',
+                                    'circle': 'https://cdn-icons-png.flaticon.com/512/481/481069.png',
+                                    'square': 'https://cdn-icons-png.flaticon.com/512/481/481048.png',
+                                    'triangle': 'https://cdn-icons-png.flaticon.com/512/481/481050.png',
+                                    'sunny': 'https://cdn-icons-png.flaticon.com/512/869/869869.png',
+                                    'rainy': 'https://cdn-icons-png.flaticon.com/512/1146/1146860.png',
+                                    'windy': 'https://cdn-icons-png.flaticon.com/512/1146/1146869.png',
+                                    'teacher': 'https://cdn-icons-png.flaticon.com/512/194/194935.png',
+                                    'book': 'https://cdn-icons-png.flaticon.com/512/2232/2232688.png',
+                                    'desk': 'https://cdn-icons-png.flaticon.com/512/2663/2663158.png',
+                                  };
+                                  final fallbackUrl = mockImages[wordLower];
+                                  final finalUrl = (option.imageUrl != null && option.imageUrl!.isNotEmpty) ? option.imageUrl : fallbackUrl;
+                                  
+                                  if (finalUrl != null && finalUrl.isNotEmpty) {
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.network(
+                                        finalUrl.startsWith('http')
+                                            ? finalUrl
+                                            : '$baseUrl${finalUrl.startsWith('/') ? '' : '/'}$finalUrl',
+                                        headers: const {'User-Agent': 'KidioApp/1.0'},
+                                        height: 54,
+                                        width: 54,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (ctx, err, stack) => Text(_getEmoji(option.word), style: const TextStyle(fontSize: 54)),
+                                      ),
+                                    );
+                                  }
+                                  
+                                  return Text(_getEmoji(option.word), style: const TextStyle(fontSize: 54));
+                                }
                               ),
                               const SizedBox(height: 10),
                               Text(

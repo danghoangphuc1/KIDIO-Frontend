@@ -101,13 +101,29 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 final stars = selectedChild?.totalStars ?? 0;
                 
                 if (_currentIndex == 1) {
-                  return const Text(
-                    'Thành tích của con',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1E3A8A),
-                    ),
+                  return Row(
+                    children: [
+                      const Text(
+                        'Thành tích của con',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E3A8A),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (context) => _buildBadgeGuideSheet(),
+                          );
+                        },
+                        child: const Icon(Icons.help_outline_rounded, color: Colors.blueAccent, size: 24),
+                      ),
+                    ],
                   );
                 }
 
@@ -172,14 +188,14 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFFB923C), width: 1.5),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.local_fire_department_rounded, color: Color(0xFFEA580C), size: 16),
-                          SizedBox(width: 2),
+                          const Icon(Icons.local_fire_department_rounded, color: Color(0xFFEA580C), size: 16),
+                          const SizedBox(width: 2),
                           Text(
-                            '7',
-                            style: TextStyle(
+                            '${selectedChild?.currentStreakDays ?? 0}',
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF9A3412),
@@ -358,7 +374,12 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 },
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 120,
+                    bottom: 24,
+                    left: 20,
+                    right: 20,
+                  ),
                   physics: const BouncingScrollPhysics(),
                   itemCount: topicProvider.topics.length + 1 + (topicProvider.hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
@@ -718,8 +739,92 @@ class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
       ),
     );
   }
-}
 
+  Widget _buildBadgeGuideSheet() {
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 32),
+                const SizedBox(width: 8),
+                const Text('Cách Nhận Huy Hiệu', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Để sưu tập huy hiệu siêu ngầu, con cần chăm chỉ học bài nhé! Học càng nhiều bài học mới, huy hiệu càng hiếm:',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: Colors.blueGrey, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png', 'Tân binh', 'Hoàn thành bài đầu tiên'),
+            _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png', 'Chiến binh', 'Hoàn thành 2 bài học'),
+            _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png', 'Ngôi sao', 'Hoàn thành 3 bài học'),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                child: const Text('Đã Rõ Cách Nhận!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadgeRuleItem(String imgUrl, String title, String range) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          CachedNetworkImage(
+            imageUrl: imgUrl,
+            width: 40,
+            height: 40,
+            errorWidget: (context, url, error) => const Icon(Icons.stars, color: Colors.orange),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.orange.shade800)),
+                const SizedBox(height: 4),
+                Text(range, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 class DashedLinePainter extends CustomPainter {
   final Color color;
   final double strokeWidth;

@@ -51,7 +51,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   bool _quizCompleted = false;
   bool _bossCompleted = false;
 
-  bool _isStoryExpanded = false;
+  bool _isStoryExpanded = true;
 
   @override
   void initState() {
@@ -92,8 +92,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         final progress = await progressProvider.checkLessonCompletion(childId, widget.lessonId);
         if (mounted) {
           setState(() {
-            _isCompleted = progress != null;
-            // If already completed in the DB, unlock and mark everything completed
+            _isCompleted = progress != null && progress.scorePercent == 100;
+            // If already fully completed in the DB, unlock and mark everything completed
             if (_isCompleted) {
               _vocabCompleted = true;
               _listeningCompleted = true;
@@ -104,16 +104,22 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
               // Load from local Hive cache so progress isn't lost if they exit and return
               try {
                 final box = Hive.box('kidio_cache');
-                _vocabCompleted = box.get('lesson_${widget.lessonId}_vocab', defaultValue: false);
-                _listeningCompleted = box.get('lesson_${widget.lessonId}_listening', defaultValue: false);
-                _pronCompleted = box.get('lesson_${widget.lessonId}_pron', defaultValue: false);
-                _quizCompleted = box.get('lesson_${widget.lessonId}_quiz', defaultValue: false);
-                _bossCompleted = box.get('lesson_${widget.lessonId}_boss', defaultValue: false);
+                _vocabCompleted = box.get('${childId}_lesson_${widget.lessonId}_vocab', defaultValue: false);
+                _listeningCompleted = box.get('${childId}_lesson_${widget.lessonId}_listening', defaultValue: false);
+                _pronCompleted = box.get('${childId}_lesson_${widget.lessonId}_pron', defaultValue: false);
+                _quizCompleted = box.get('${childId}_lesson_${widget.lessonId}_quiz', defaultValue: false);
+                _bossCompleted = box.get('${childId}_lesson_${widget.lessonId}_boss', defaultValue: false);
               } catch (e) {
                 debugPrint("Error loading local progress: $e");
               }
             }
           });
+
+          // Auto-submit if the user has 5/5 local progress but the database doesn't reflect 100% yet
+          // (This recovers from network errors or previous failed submissions)
+          if (!_isCompleted && _getCompletedCount() == 5) {
+            _finishLesson();
+          }
         }
       }
 
@@ -251,6 +257,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final progress = _getCompletedCount() / 5.0;
+    final childId = context.read<ChildProvider>().selectedChild?.id ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F7FC),
@@ -491,7 +498,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _vocabCompleted = true);
-                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_vocab', true); } catch (_) {}
+                            try { Hive.box('kidio_cache').put('${childId}_lesson_${widget.lessonId}_vocab', true); } catch (_) {}
                           }
                         },
                       ),
@@ -517,7 +524,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _listeningCompleted = true);
-                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_listening', true); } catch (_) {}
+                            try { Hive.box('kidio_cache').put('${childId}_lesson_${widget.lessonId}_listening', true); } catch (_) {}
                           }
                         },
                       ),
@@ -543,7 +550,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _pronCompleted = true);
-                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_pron', true); } catch (_) {}
+                            try { Hive.box('kidio_cache').put('${childId}_lesson_${widget.lessonId}_pron', true); } catch (_) {}
                           }
                         },
                       ),
@@ -569,7 +576,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _quizCompleted = true);
-                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_quiz', true); } catch (_) {}
+                            try { Hive.box('kidio_cache').put('${childId}_lesson_${widget.lessonId}_quiz', true); } catch (_) {}
                           }
                         },
                       ),
@@ -595,7 +602,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                           );
                           if (res == true) {
                             setState(() => _bossCompleted = true);
-                            try { Hive.box('kidio_cache').put('lesson_${widget.lessonId}_boss', true); } catch (_) {}
+                            try { Hive.box('kidio_cache').put('${childId}_lesson_${widget.lessonId}_boss', true); } catch (_) {}
                             await _finishLesson();
                           }
                         },

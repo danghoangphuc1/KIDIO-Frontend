@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/kidio_models.dart';
 import '../providers/progress_provider.dart';
 import '../providers/child_provider.dart';
+import 'lesson_detail_screen.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -42,7 +43,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> with SingleTick
         // Header Summary
         Container(
           padding: const EdgeInsets.all(20),
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 90,
+            bottom: 16,
+            left: 20,
+            right: 20,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
@@ -250,11 +256,23 @@ class _AchievementsScreenState extends State<AchievementsScreen> with SingleTick
               child: const Icon(Icons.check_circle_rounded, color: Colors.green),
             ),
             title: Text(
-              'Bài học #${index + 1}', // Ở đây nếu có tên Lesson từ BE thì tốt, hiện tại data LessonProgress có lessonId
+              progress.lessonTitle?.isNotEmpty == true ? progress.lessonTitle! : 'Bài học #${index + 1}',
               style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1A237E)),
             ),
             subtitle: Text('Đã nhận ${progress.starsEarned} ⭐ | Hoàn thành tốt'),
             trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => LessonDetailScreen(lessonId: progress.lessonId)),
+              );
+              if (context.mounted) {
+                final childId = context.read<ChildProvider>().selectedChild?.id;
+                if (childId != null) {
+                  provider.loadChildProgress(childId);
+                }
+              }
+            },
           ),
         );
       },

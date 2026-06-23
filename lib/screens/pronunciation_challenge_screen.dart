@@ -577,21 +577,23 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                                       label: const Text('NÓI LẠI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _nextWord,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.pinkAccent,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                        elevation: 2,
+                                  if (_currentScore!.overallScore >= 60) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: _nextWord,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.pinkAccent,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                          elevation: 2,
+                                        ),
+                                        icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                                        label: const Text('TIẾP TỤC', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                                       ),
-                                      icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                                      label: const Text('TIẾP TỤC', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                                     ),
-                                  ),
+                                  ]
                                 ],
                               ),
                             ],
