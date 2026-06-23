@@ -679,6 +679,109 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
       }),
     );
   }
+
+  Widget _buildBadgeGuideSheet() {
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 32),
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text(
+                    'Cách Nhận Huy Hiệu',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Để sưu tập huy hiệu siêu ngầu, con cần chăm chỉ học bài nhé! Học càng nhiều bài học mới, huy hiệu càng hiếm:',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: Colors.blueGrey, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png', 'Tân binh dũng cảm', 'Hoàn thành 1 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png', 'Chiến binh thông thái', 'Hoàn thành 2 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png', 'Ngôi sao chớp nhoáng', 'Hoàn thành 3 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png', 'Sắc màu rực rỡ', 'Hoàn thành 4 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png', 'Trái tim kiên cường', 'Hoàn thành 5 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png', 'Bậc thầy kiên nhẫn', 'Hoàn thành 6 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png', 'Ngọn lửa nhiệt huyết', 'Hoàn thành 7 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png', 'Nhà vô địch Trái Đất', 'Hoàn thành 8 bài học'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                child: const Text('Đã Rõ Cách Nhận!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadgeRuleItem(String imgUrl, String title, String range) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          CachedNetworkImage(
+            imageUrl: imgUrl,
+            width: 40,
+            height: 40,
+            errorWidget: (context, url, error) => const Icon(Icons.stars, color: Colors.orange),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.orange.shade800)),
+                const SizedBox(height: 4),
+                Text(range, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Staggered Map Animated Button
@@ -736,91 +839,6 @@ class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBadgeGuideSheet() {
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 32),
-                const SizedBox(width: 8),
-                const Text('Cách Nhận Huy Hiệu', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Để sưu tập huy hiệu siêu ngầu, con cần chăm chỉ học bài nhé! Học càng nhiều bài học mới, huy hiệu càng hiếm:',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: Colors.blueGrey, height: 1.4),
-            ),
-            const SizedBox(height: 24),
-            _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png', 'Tân binh', 'Hoàn thành bài đầu tiên'),
-            _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png', 'Chiến binh', 'Hoàn thành 2 bài học'),
-            _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png', 'Ngôi sao', 'Hoàn thành 3 bài học'),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 0,
-                ),
-                child: const Text('Đã Rõ Cách Nhận!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadgeRuleItem(String imgUrl, String title, String range) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          CachedNetworkImage(
-            imageUrl: imgUrl,
-            width: 40,
-            height: 40,
-            errorWidget: (context, url, error) => const Icon(Icons.stars, color: Colors.orange),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.orange.shade800)),
-                const SizedBox(height: 4),
-                Text(range, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

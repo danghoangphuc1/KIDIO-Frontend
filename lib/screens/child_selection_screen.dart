@@ -142,9 +142,11 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () => _showParentVerification(context),
-            child: GlassCard(
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => _showParentVerification(context),
+                child: GlassCard(
               borderRadius: BorderRadius.circular(20),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               fillColor: Colors.white.withOpacity(0.35),
@@ -167,8 +169,22 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
               ),
             ),
           ),
-          
-          IconButton(
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (context) => _buildGuideSheet(),
+              );
+            },
+            child: const Icon(Icons.help_outline_rounded, color: Color(0xFF0EA5E9), size: 28),
+          ),
+        ],
+      ),
+      
+      IconButton(
             icon: GlassCard(
               borderRadius: BorderRadius.circular(24),
               padding: const EdgeInsets.all(8),
@@ -193,8 +209,8 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
     ];
     final color = colors[index % colors.length];
     
-    // Dynamic level based on totalStars
-    final level = (child.totalStars / 30).floor() + 1;
+    // Dynamic level based on totalStars (10 stars = 1 level)
+    final level = (child.totalStars / 10).floor() + 1;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -679,6 +695,114 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
               context.read<AuthProvider>().logout();
             },
             child: const Text('CÓ, ĐĂNG XUẤT', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideSheet() {
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
+            const SizedBox(height: 20),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.menu_book_rounded, color: Color(0xFF1E3A8A), size: 32),
+                SizedBox(width: 8),
+                Text('Sổ Tay Hướng Dẫn', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
+              ],
+            ),
+            const SizedBox(height: 24),
+            
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildGuideItem(
+                      icon: Icons.star_rounded,
+                      color: Colors.amber,
+                      title: 'Điểm Sao (Stars)',
+                      desc: 'Mỗi khi bé hoàn thành xuất sắc 1 bài học, bé sẽ nhận được tối đa 3 sao. Điểm sao dùng để lên cấp đó nha!',
+                    ),
+                    _buildGuideItem(
+                      icon: Icons.trending_up_rounded,
+                      color: Colors.green,
+                      title: 'Cấp độ (Level)',
+                      desc: 'Cứ mỗi 10 Sao tích lũy được, bé sẽ thăng lên 1 cấp độ mới! Cấp độ càng cao chứng tỏ bé càng giỏi.',
+                    ),
+                    _buildGuideItem(
+                      icon: Icons.local_fire_department_rounded,
+                      color: Colors.orange,
+                      title: 'Chuỗi Học Tập (Streak)',
+                      desc: 'Số ngày học liên tiếp của bé. Nếu bỏ lỡ 1 ngày không học, chuỗi lửa sẽ bị quay về 0 đấy!',
+                    ),
+                    _buildGuideItem(
+                      icon: Icons.emoji_events_rounded,
+                      color: Colors.purple,
+                      title: 'Huy Hiệu (Badges)',
+                      desc: 'Thành tích dành cho bé khi hoàn thành số lượng bài học tương ứng. Xem bộ sưu tập trong "Thành tích của con" nhé!',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                child: const Text('Đã Rõ Thể Lệ!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideItem({required IconData icon, required Color color, required String title, required String desc}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E3A8A))),
+                const SizedBox(height: 4),
+                Text(desc, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.blueGrey, height: 1.4)),
+              ],
+            ),
           ),
         ],
       ),
