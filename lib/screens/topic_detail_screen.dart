@@ -510,11 +510,11 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                                 if (childId != null && !isDone) {
                                                   try {
                                                     final cacheBox = Hive.box('kidio_cache');
-                                                    if (cacheBox.get('_lesson__vocab', defaultValue: false)) completedGames++;
-                                                    if (cacheBox.get('_lesson__listening', defaultValue: false)) completedGames++;
-                                                    if (cacheBox.get('_lesson__pron', defaultValue: false)) completedGames++;
-                                                    if (cacheBox.get('_lesson__quiz', defaultValue: false)) completedGames++;
-                                                    if (cacheBox.get('_lesson__boss', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('activity_status_${childId}_${lesson.id}_vocab', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('activity_status_${childId}_${lesson.id}_listening', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('activity_status_${childId}_${lesson.id}_pron', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('activity_status_${childId}_${lesson.id}_quiz', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('activity_status_${childId}_${lesson.id}_boss', defaultValue: false)) completedGames++;
                                                   } catch (_) {}
                                                 }
 
@@ -537,11 +537,11 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                                         ),
                                                         const SizedBox(width: 8),
 
-                                                        // Status Text: Complete! / Tiáº¿n Ä‘á»™: Y/5
+                                                        // Status Text: Complete! / progress %
                                                         Text(
                                                           isDone
-                                                              ? 'Complete! âœ“'
-                                                              : (completedGames > 0 ? 'Tiáº¿n Ä‘á»™: /5' : '0%'),
+                                                              ? 'Complete! ✓'
+                                                              : (completedGames > 0 ? '${completedGames * 20}%' : '0%'),
                                                           style: TextStyle(
                                                             fontSize: 10,
                                                             fontWeight: FontWeight.w900,
