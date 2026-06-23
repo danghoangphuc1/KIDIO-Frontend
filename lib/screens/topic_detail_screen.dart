@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import '../models/kidio_models.dart';
 import '../repositories/lesson_repository.dart';
@@ -157,8 +158,13 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
               final prog = progressProvider.completedLessons.firstWhere(
                 (p) => p.lessonId == lesson.id,
                 orElse: () => LessonProgress(
-                  id: '', childId: '', lessonId: '', isCompleted: false,
-                  starsEarned: 0, scorePercent: 0, timeSpentSeconds: 0,
+                  id: '',
+                  childId: '',
+                  lessonId: '',
+                  isCompleted: false,
+                  starsEarned: 0,
+                  scorePercent: 0,
+                  timeSpentSeconds: 0,
                 ),
               );
               totalTopicStars += prog.starsEarned;
@@ -498,70 +504,94 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
 
                                           // Stars or Locked Subtext
                                           if (isUnlocked) ...[
-                                            Row(
-                                              children: [
-                                                // 3 Star Representation
-                                                Row(
-                                                  children: List.generate(3, (starIdx) {
-                                                    // Map completed stars (e.g. up to 3)
-                                                    final active = isDone && (starIdx < (starsEarned >= 3 ? 3 : starsEarned));
-                                                    return Icon(
-                                                      Icons.star_rounded,
-                                                      color: active ? const Color(0xFFFACC15) : const Color(0xFFCBD5E1),
-                                                      size: 16,
-                                                    );
-                                                  }),
-                                                ),
-                                                const SizedBox(width: 8),
+                                            Builder(
+                                              builder: (context) {
+                                                int completedGames = 0;
+                                                if (childId != null && !isDone) {
+                                                  try {
+                                                    final cacheBox = Hive.box('kidio_cache');
+                                                    if (cacheBox.get('_lesson__vocab', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('_lesson__listening', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('_lesson__pron', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('_lesson__quiz', defaultValue: false)) completedGames++;
+                                                    if (cacheBox.get('_lesson__boss', defaultValue: false)) completedGames++;
+                                                  } catch (_) {}
+                                                }
 
-                                                // Status Text: Complete! / 66%
-                                                Text(
-                                                  isDone ? 'Complete! ✓' : '${(starsEarned * 33).toInt()}%',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w900,
-                                                    color: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            // Progress bar for current NOW active lesson (elastic animation)
-                                            if (!isDone && index == completedCount) ...[
-                                              const SizedBox(height: 6),
-                                              SizedBox(
-                                                width: 100,
-                                                height: 4,
-                                                child: LayoutBuilder(
-                                                  builder: (ctx, constraints) {
-                                                    return TweenAnimationBuilder<double>(
-                                                      tween: Tween<double>(begin: 0, end: (starsEarned / 3.0).clamp(0.0, 1.0)),
-                                                      duration: const Duration(milliseconds: 700),
-                                                      curve: Curves.easeOutBack,
-                                                      builder: (ctx, val, _) => Stack(
-                                                        children: [
-                                                          Container(
-                                                            height: 4,
-                                                            width: constraints.maxWidth,
-                                                            decoration: BoxDecoration(
-                                                              color: const Color(0xFFF1F5F9),
-                                                              borderRadius: BorderRadius.circular(4),
-                                                            ),
+                                                return Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        // 3 Star Representation
+                                                        Row(
+                                                          children: List.generate(3, (starIdx) {
+                                                            // Map completed stars (e.g. up to 3)
+                                                            final active = isDone && (starIdx < (starsEarned >= 3 ? 3 : starsEarned));
+                                                            return Icon(
+                                                              Icons.star_rounded,
+                                                              color: active ? const Color(0xFFFACC15) : const Color(0xFFCBD5E1),
+                                                              size: 16,
+                                                            );
+                                                          }),
+                                                        ),
+                                                        const SizedBox(width: 8),
+
+                                                        // Status Text: Complete! / Tiáº¿n Ä‘á»™: Y/5
+                                                        Text(
+                                                          isDone
+                                                              ? 'Complete! âœ“'
+                                                              : (completedGames > 0 ? 'Tiáº¿n Ä‘á»™: /5' : '0%'),
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.w900,
+                                                            color: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
                                                           ),
-                                                          Container(
-                                                            height: 4,
-                                                            width: (constraints.maxWidth * val).clamp(0, constraints.maxWidth),
-                                                            decoration: BoxDecoration(
-                                                              color: const Color(0xFF10B981),
-                                                              borderRadius: BorderRadius.circular(4),
-                                                            ),
-                                                          ),
-                                                        ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    // Progress bar for current NOW active lesson (elastic animation)
+                                                    if (!isDone && index == completedCount) ...[
+                                                      const SizedBox(height: 6),
+                                                      SizedBox(
+                                                        width: 100,
+                                                        height: 4,
+                                                        child: LayoutBuilder(
+                                                          builder: (ctx, constraints) {
+                                                            final targetProgress = isDone ? 1.0 : (completedGames / 5.0);
+                                                            return TweenAnimationBuilder<double>(
+                                                              tween: Tween<double>(begin: 0, end: targetProgress.clamp(0.0, 1.0)),
+                                                              duration: const Duration(milliseconds: 700),
+                                                              curve: Curves.easeOutBack,
+                                                              builder: (ctx, val, _) => Stack(
+                                                                children: [
+                                                                  Container(
+                                                                    height: 4,
+                                                                    width: constraints.maxWidth,
+                                                                    decoration: BoxDecoration(
+                                                                      color: const Color(0xFFF1F5F9),
+                                                                      borderRadius: BorderRadius.circular(4),
+                                                                    ),
+                                                                  ),
+                                                                  Container(
+                                                                    height: 4,
+                                                                    width: (constraints.maxWidth * val).clamp(0, constraints.maxWidth),
+                                                                    decoration: BoxDecoration(
+                                                                      color: const Color(0xFF10B981),
+                                                                      borderRadius: BorderRadius.circular(4),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
                                                       ),
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                            ],
+                                                    ],
+                                                  ],
+                                                );
+                                              }
+                                            ),
                                           ] else ...[
                                             // Locked description
                                             Row(
@@ -719,6 +749,92 @@ class _Animated3DButtonState extends State<_Animated3DButton> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildScoringGuideSheet() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(3))),
+              ),
+              const SizedBox(height: 24),
+              const Row(
+                children: [
+                  Text('🌟', style: TextStyle(fontSize: 28)),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Cách Tính Điểm Thưởng',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A237E)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Để nhận được sao, con chỉ cần hoàn thành đầy đủ tất cả 5 thử thách trong bài học! Rất đơn giản phải không nào?',
+                style: TextStyle(fontSize: 14, color: Colors.blueGrey, height: 1.5, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              _buildScoreRuleItem('⭐⭐⭐', 'Tuyệt Vời!', 'Hoàn thành 5/5 thử thách', Colors.amber),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Đã Rõ Luật Chơi!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreRuleItem(String stars, String title, String range, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Text(stars, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: color.withOpacity(0.8))),
+                const SizedBox(height: 4),
+                Text(range, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

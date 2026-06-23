@@ -135,6 +135,7 @@ class LessonProgress {
   final String id;
   final String childId;
   final String lessonId;
+  final String? lessonTitle;
   final bool isCompleted;
   final int starsEarned;
   final int scorePercent;
@@ -146,6 +147,7 @@ class LessonProgress {
     required this.id,
     required this.childId,
     required this.lessonId,
+    this.lessonTitle,
     required this.isCompleted,
     required this.starsEarned,
     required this.scorePercent,

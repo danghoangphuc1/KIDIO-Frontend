@@ -50,7 +50,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   bool _quizCompleted = false;
   bool _bossCompleted = false;
 
-  bool _isStoryExpanded = false;
+  bool _isStoryExpanded = true;
 
   @override
   void initState() {
@@ -106,6 +106,11 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
               _bossCompleted = _cacheService.getActivityStatus(childId, widget.lessonId, 'boss');
             }
           });
+
+          // Auto-submit if the user has 5/5 local progress but the database doesn't reflect 100% yet
+          if (!_isCompleted && _getCompletedCount() == 5) {
+            _finishLesson();
+          }
         }
       }
 
@@ -253,6 +258,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final progress = _getCompletedCount() / 5.0;
+    final childId = context.read<ChildProvider>().selectedChild?.id ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFEEF2FD),
@@ -669,6 +675,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                       ],
                     ),
                   ),
+
                 ),
               ],
             );

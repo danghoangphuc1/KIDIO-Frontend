@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/progress_provider.dart';
 import '../providers/child_provider.dart';
 import '../widgets/glassmorphic_widgets.dart';
+import 'lesson_detail_screen.dart';
 
 class BadgeItem {
   final String key;
@@ -31,6 +32,8 @@ class AchievementsScreen extends StatefulWidget {
 }
 
 class _AchievementsScreenState extends State<AchievementsScreen> {
+  bool _showBadges = true;
+
   @override
   Widget build(BuildContext context) {
     final progressProvider = context.watch<ProgressProvider>();
@@ -252,8 +255,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                               const Color(0xFF7C3AED).withOpacity(0.85),
                             ],
                           ),
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
                         ),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
                         child: Column(
                           children: [
                             Container(
@@ -328,146 +331,269 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 ),
                 
                 const SizedBox(height: 24),
-                
-                // ── Badges Title Header ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      '🥇 Huy hiệu của bé',
-                      style: TextStyle(
-                        fontFamily: 'FredokaOne',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF102D54),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Text(
-                        '$unlockedCount / ${badges.length} Đã mở',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF4F46E5),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // ── Badges Grid ──
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.95,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: badges.length,
-                  itemBuilder: (context, index) {
-                    final badge = badges[index];
-                    final isUnlocked = isBadgeUnlocked(badge);
 
-                    return GlassCard(
-                      padding: const EdgeInsets.all(12),
-                      borderRadius: BorderRadius.circular(24),
-                      fillColor: isUnlocked 
-                          ? Colors.white.withOpacity(0.9) 
-                          : Colors.white.withOpacity(0.55),
-                      borderColor: isUnlocked
-                          ? badge.activeColor.withOpacity(0.9)
-                          : Colors.white.withOpacity(0.3),
-                      borderWidth: 2,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: isUnlocked
-                                      ? badge.activeColor
-                                      : const Color(0xFFE2E8F0),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: isUnlocked ? Colors.white : Colors.transparent,
-                                    width: 2,
-                                  ),
-                                ),
-                                alignment: Alignment.center,
-                                child: isUnlocked
-                                    ? Text(
-                                        badge.emoji,
-                                        style: const TextStyle(fontSize: 32),
-                                      )
-                                    : const Icon(
-                                        Icons.lock_rounded,
-                                        color: Color(0xFF94A3B8),
-                                        size: 26,
-                                      ),
-                              ),
-                              if (isUnlocked)
-                                Positioned(
-                                  top: -2,
-                                  right: -2,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF10B981),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.check_rounded,
-                                      color: Colors.white,
-                                      size: 12,
-                                    ),
-                                  ),
-                                ),
-                            ],
+                // ── Segment Selector for Badges vs Completed Lessons ──
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _showBadges = true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _showBadges ? const Color(0xFF4F46E5) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            badge.title,
-                            textAlign: TextAlign.center,
+                          child: Text(
+                            '🏅 Huy hiệu',
                             style: TextStyle(
                               fontFamily: 'FredokaOne',
                               fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: isUnlocked
-                                  ? const Color(0xFF102D54)
-                                  : const Color(0xFF64748B),
+                              color: _showBadges ? Colors.white : const Color(0xFF4F46E5),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            isUnlocked ? badge.rewardText : 'Học tập thêm để mở khóa!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isUnlocked
-                                  ? const Color(0xFFD97706)
-                                  : const Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    );
-                  },
+                      GestureDetector(
+                        onTap: () => setState(() => _showBadges = false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: !_showBadges ? const Color(0xFF4F46E5) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '📖 Bài học xong',
+                            style: TextStyle(
+                              fontFamily: 'FredokaOne',
+                              fontSize: 13,
+                              color: !_showBadges ? Colors.white : const Color(0xFF4F46E5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                
+                const SizedBox(height: 24),
+                
+                if (_showBadges) ...[
+                  // ── Badges Title Header ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        '🥇 Huy hiệu của bé',
+                        style: TextStyle(
+                          fontFamily: 'FredokaOne',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF102D54),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: Text(
+                          '$unlockedCount / ${badges.length} Đã mở',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF4F46E5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // ── Badges Grid ──
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.95,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: badges.length,
+                    itemBuilder: (context, index) {
+                      final badge = badges[index];
+                      final isUnlocked = isBadgeUnlocked(badge);
+
+                      return GlassCard(
+                        padding: const EdgeInsets.all(12),
+                        borderRadius: BorderRadius.circular(24),
+                        fillColor: isUnlocked 
+                            ? Colors.white.withOpacity(0.9) 
+                            : Colors.white.withOpacity(0.55),
+                        borderColor: isUnlocked
+                            ? badge.activeColor.withOpacity(0.9)
+                            : Colors.white.withOpacity(0.3),
+                        borderWidth: 2,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: isUnlocked
+                                        ? badge.activeColor
+                                        : const Color(0xFFE2E8F0),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isUnlocked ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: isUnlocked
+                                      ? Text(
+                                          badge.emoji,
+                                          style: const TextStyle(fontSize: 32),
+                                        )
+                                      : const Icon(
+                                          Icons.lock_rounded,
+                                          color: Color(0xFF94A3B8),
+                                          size: 26,
+                                        ),
+                                ),
+                                if (isUnlocked)
+                                  Positioned(
+                                    top: -2,
+                                    right: -2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              badge.title,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'FredokaOne',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: isUnlocked
+                                    ? const Color(0xFF102D54)
+                                    : const Color(0xFF64748B),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isUnlocked ? badge.rewardText : 'Học tập thêm để mở khóa!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isUnlocked
+                                    ? const Color(0xFFD97706)
+                                    : const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ] else ...[
+                  // ── Completed Lessons List View ──
+                  if (progressProvider.completedLessons.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          children: [
+                            Icon(Icons.menu_book_rounded, size: 80, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Chưa xong bài nào.',
+                              style: TextStyle(fontFamily: 'FredokaOne', fontSize: 18, color: Colors.blueGrey),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text('Bắt đầu bài học đầu tiên ngay thôi!', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: progressProvider.completedLessons.length,
+                      itemBuilder: (context, index) {
+                        final progress = progressProvider.completedLessons[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: GlassCard(
+                            padding: EdgeInsets.zero,
+                            borderRadius: BorderRadius.circular(20),
+                            fillColor: Colors.white.withOpacity(0.85),
+                            borderColor: Colors.white.withOpacity(0.9),
+                            borderWidth: 1.5,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              leading: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle),
+                                child: const Icon(Icons.check_circle_rounded, color: Colors.green),
+                              ),
+                              title: Text(
+                                progress.lessonTitle?.isNotEmpty == true ? progress.lessonTitle! : 'Bài học #${index + 1}',
+                                style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF102D54)),
+                              ),
+                              subtitle: Text(
+                                'Đã nhận ${progress.starsEarned} ⭐ | Hoàn thành tốt',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => LessonDetailScreen(lessonId: progress.lessonId)),
+                                );
+                                if (context.mounted) {
+                                  final childId = context.read<ChildProvider>().selectedChild?.id;
+                                  if (childId != null) {
+                                    progressProvider.loadChildProgress(childId);
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
               ],
             ),
           ),
