@@ -255,8 +255,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                               const Color(0xFF7C3AED).withOpacity(0.85),
                             ],
                           ),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
                         ),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
                         child: Column(
                           children: [
                             Container(

@@ -749,66 +749,6 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
       }),
     );
   }
-}
-
-// Staggered Map Animated Button
-class _AnimatedMapButton extends StatefulWidget {
-  final String text;
-  final Color baseColor;
-  final Color shadowColor;
-  final VoidCallback onPressed;
-
-  const _AnimatedMapButton({
-    required this.text,
-    required this.baseColor,
-    required this.shadowColor,
-    required this.onPressed,
-  });
-
-  @override
-  State<_AnimatedMapButton> createState() => _AnimatedMapButtonState();
-}
-
-class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
-  bool _isTapped = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isTapped = true),
-      onTapUp: (_) => setState(() => _isTapped = false),
-      onTapCancel: () => setState(() => _isTapped = false),
-      onTap: widget.onPressed,
-      child: AnimatedScale(
-        scale: _isTapped ? 0.86 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          height: 38,
-          decoration: BoxDecoration(
-            color: widget.shadowColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            margin: EdgeInsets.only(bottom: _isTapped ? 1.5 : 3.5),
-            decoration: BoxDecoration(
-              color: widget.baseColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              widget.text,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildBadgeGuideSheet() {
     return SafeArea(
@@ -821,14 +761,14 @@ class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
+            Container(width: 40, height: 6, decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10))),
             const SizedBox(height: 20),
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 32),
-                const SizedBox(width: 8),
-                const Text('Cách Nhận Huy Hiệu', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
+                Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 32),
+                SizedBox(width: 8),
+                Text('Cách Nhận Huy Hiệu', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
               ],
             ),
             const SizedBox(height: 16),
@@ -894,6 +834,68 @@ class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
       ),
     );
   }
+}
+
+// Staggered Map Animated Button
+class _AnimatedMapButton extends StatefulWidget {
+  final String text;
+  final Color baseColor;
+  final Color shadowColor;
+  final VoidCallback onPressed;
+
+  const _AnimatedMapButton({
+    required this.text,
+    required this.baseColor,
+    required this.shadowColor,
+    required this.onPressed,
+  });
+
+  @override
+  State<_AnimatedMapButton> createState() => _AnimatedMapButtonState();
+}
+
+class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
+  bool _isTapped = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isTapped = true),
+      onTapUp: (_) => setState(() => _isTapped = false),
+      onTapCancel: () => setState(() => _isTapped = false),
+      onTap: widget.onPressed,
+      child: AnimatedScale(
+        scale: _isTapped ? 0.86 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: widget.shadowColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            margin: EdgeInsets.only(bottom: _isTapped ? 1.5 : 3.5),
+            decoration: BoxDecoration(
+              color: widget.baseColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              widget.text,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
 }
 class DashedLinePainter extends CustomPainter {
   final Color color;
