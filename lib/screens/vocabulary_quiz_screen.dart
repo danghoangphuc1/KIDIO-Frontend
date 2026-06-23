@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/kidio_models.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
+import '../providers/child_provider.dart';
+import '../local/cache_service.dart';
 
 class VocabularyQuizScreen extends StatefulWidget {
   final List<Vocabulary> vocabularies;
@@ -205,6 +207,15 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
   }
 
   void _showCompletionScreen() {
+    try {
+      final childId = Provider.of<ChildProvider>(context, listen: false).selectedChild?.id;
+      if (childId != null) {
+        CacheService().saveActivityStatus(childId, widget.lessonId, 'quiz', true);
+      }
+    } catch (e) {
+      debugPrint('Error caching quiz status: $e');
+    }
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

@@ -166,6 +166,7 @@ class Achievement {
   final String? description;
   @JsonKey(name: 'badgeUrl')
   final String? iconUrl;
+  @JsonKey(name: 'type')
   final String? achievementType;
   final DateTime? earnedAt;
 
@@ -444,4 +445,30 @@ class TtsVoice {
 
   factory TtsVoice.fromJson(Map<String, dynamic> json) => _$TtsVoiceFromJson(json);
   Map<String, dynamic> toJson() => _$TtsVoiceToJson(this);
+}
+
+@JsonSerializable()
+class AchievementDefinition {
+  final String id;
+  final String type;
+  final int threshold;
+  final String name;
+  final String? description;
+  final String? badgeUrl;
+  final int orderIndex;
+  final bool isActive;
+
+  AchievementDefinition({
+    required this.id,
+    required this.type,
+    required this.threshold,
+    required this.name,
+    this.description,
+    this.badgeUrl,
+    required this.orderIndex,
+    required this.isActive,
+  });
+
+  factory AchievementDefinition.fromJson(Map<String, dynamic> json) => _$AchievementDefinitionFromJson(json);
+  Map<String, dynamic> toJson() => _$AchievementDefinitionToJson(this);
 }

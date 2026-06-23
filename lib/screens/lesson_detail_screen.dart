@@ -98,6 +98,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
               _pronCompleted = true;
               _quizCompleted = true;
               _bossCompleted = true;
+            } else {
+              _vocabCompleted = _cacheService.getActivityStatus(childId, widget.lessonId, 'vocab');
+              _listeningCompleted = _cacheService.getActivityStatus(childId, widget.lessonId, 'listening');
+              _pronCompleted = _cacheService.getActivityStatus(childId, widget.lessonId, 'pron');
+              _quizCompleted = _cacheService.getActivityStatus(childId, widget.lessonId, 'quiz');
+              _bossCompleted = _cacheService.getActivityStatus(childId, widget.lessonId, 'boss');
             }
           });
         }
@@ -183,6 +189,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
           _quizCompleted = true;
           _bossCompleted = true;
         });
+        await _cacheService.clearActivityStatuses(childId, widget.lessonId);
         await context.read<ChildProvider>().refreshSelectedChild();
         _showSuccessDialog();
       }
@@ -524,8 +531,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                       ),
                                     ),
                                   );
-                                  if (res == true) {
+                                  final childId = context.read<ChildProvider>().selectedChild?.id;
+                                  final isDone = res == true || (childId != null && _cacheService.getActivityStatus(childId, widget.lessonId, 'vocab'));
+                                  if (isDone) {
                                     setState(() => _vocabCompleted = true);
+                                    if (childId != null) {
+                                      await _cacheService.saveActivityStatus(childId, widget.lessonId, 'vocab', true);
+                                    }
                                   }
                                 },
                               ),
@@ -549,8 +561,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                       ),
                                     ),
                                   );
-                                  if (res == true) {
+                                  final childId = context.read<ChildProvider>().selectedChild?.id;
+                                  final isDone = res == true || (childId != null && _cacheService.getActivityStatus(childId, widget.lessonId, 'listening'));
+                                  if (isDone) {
                                     setState(() => _listeningCompleted = true);
+                                    if (childId != null) {
+                                      await _cacheService.saveActivityStatus(childId, widget.lessonId, 'listening', true);
+                                    }
                                   }
                                 },
                               ),
@@ -574,8 +591,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                       ),
                                     ),
                                   );
-                                  if (res == true) {
+                                  final childId = context.read<ChildProvider>().selectedChild?.id;
+                                  final isDone = res == true || (childId != null && _cacheService.getActivityStatus(childId, widget.lessonId, 'pron'));
+                                  if (isDone) {
                                     setState(() => _pronCompleted = true);
+                                    if (childId != null) {
+                                      await _cacheService.saveActivityStatus(childId, widget.lessonId, 'pron', true);
+                                    }
                                   }
                                 },
                               ),
@@ -599,8 +621,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                       ),
                                     ),
                                   );
-                                  if (res == true) {
+                                  final childId = context.read<ChildProvider>().selectedChild?.id;
+                                  final isDone = res == true || (childId != null && _cacheService.getActivityStatus(childId, widget.lessonId, 'quiz'));
+                                  if (isDone) {
                                     setState(() => _quizCompleted = true);
+                                    if (childId != null) {
+                                      await _cacheService.saveActivityStatus(childId, widget.lessonId, 'quiz', true);
+                                    }
                                   }
                                 },
                               ),
@@ -624,8 +651,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                       ),
                                     ),
                                   );
-                                  if (res == true) {
+                                  final childId = context.read<ChildProvider>().selectedChild?.id;
+                                  final isDone = res == true || (childId != null && _cacheService.getActivityStatus(childId, widget.lessonId, 'boss'));
+                                  if (isDone) {
                                     setState(() => _bossCompleted = true);
+                                    if (childId != null) {
+                                      await _cacheService.saveActivityStatus(childId, widget.lessonId, 'boss', true);
+                                    }
                                     await _finishLesson();
                                   }
                                 },

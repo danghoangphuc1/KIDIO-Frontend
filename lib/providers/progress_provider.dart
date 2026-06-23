@@ -12,6 +12,7 @@ class ProgressProvider extends ChangeNotifier {
 
   List<LessonProgress> _recentActivities = [];
   List<Achievement> _achievements = [];
+  List<AchievementDefinition> _activeDefinitions = [];
   List<LessonProgress> _completedLessons = [];
   ChildProgressSummary? _summary;
   bool _isLoading = false;
@@ -19,6 +20,7 @@ class ProgressProvider extends ChangeNotifier {
 
   List<LessonProgress> get recentActivities => _recentActivities;
   List<Achievement> get achievements => _achievements;
+  List<AchievementDefinition> get activeDefinitions => _activeDefinitions;
   List<LessonProgress> get completedLessons => _completedLessons;
   ChildProgressSummary? get summary => _summary;
   bool get isLoading => _isLoading;
@@ -27,6 +29,7 @@ class ProgressProvider extends ChangeNotifier {
   void clearProgress() {
     _recentActivities = [];
     _achievements = [];
+    _activeDefinitions = [];
     _completedLessons = [];
     _summary = null;
     _errorMessage = null;
@@ -78,16 +81,19 @@ class ProgressProvider extends ChangeNotifier {
         _achievementRepository.getByChild(childId),
         _progressRepository.getChildSummary(childId),
         _progressRepository.getCompletedLessons(childId),
+        _achievementRepository.getActiveDefinitions(),
       ]);
       
       _recentActivities = results[0] as List<LessonProgress>;
       _achievements = results[1] as List<Achievement>;
       _summary = results[2] as ChildProgressSummary;
       _completedLessons = results[3] as List<LessonProgress>;
+      _activeDefinitions = results[4] as List<AchievementDefinition>;
 
       // Cache the loaded data
       await box.put('cached_recent_activities_$childId', _recentActivities.map((e) => e.toJson()).toList());
       await box.put('cached_achievements_$childId', _achievements.map((e) => e.toJson()).toList());
+      await box.put('cached_active_definitions_$childId', _activeDefinitions.map((e) => e.toJson()).toList());
       await box.put('cached_summary_$childId', _summary!.toJson());
       await box.put('cached_completed_lessons_$childId', _completedLessons.map((e) => e.toJson()).toList());
     } catch (e) {
@@ -186,6 +192,16 @@ class ProgressProvider extends ChangeNotifier {
           .toList();
     } else {
       _achievements = [];
+    }
+
+    // Load active definitions
+    final activeDefinitionsRaw = box.get('cached_active_definitions_$childId');
+    if (activeDefinitionsRaw != null) {
+      _activeDefinitions = (activeDefinitionsRaw as List)
+          .map((e) => AchievementDefinition.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } else {
+      _activeDefinitions = [];
     }
 
     // Load summary

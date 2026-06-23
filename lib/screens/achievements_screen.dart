@@ -48,72 +48,132 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     final completedLessonsCount = progressProvider.completedLessons.length;
 
     // Define badges and check their unlocked state
-    final badges = [
-      BadgeItem(
-        key: 'first_lesson',
-        title: 'Bài Học Đầu Tiên',
-        rewardText: '+10 sao',
-        icon: Icons.book_rounded,
-        emoji: '📖',
-        activeColor: const Color(0xFFE0F2FE),
-      ),
-      BadgeItem(
-        key: '10_lessons',
-        title: 'Hoàn Thành 10 Bài',
-        rewardText: '+50 sao',
-        icon: Icons.track_changes_rounded,
-        emoji: '🎯',
-        activeColor: const Color(0xFFFFE4E6),
-      ),
-      BadgeItem(
-        key: '100_stars',
-        title: 'Đạt 100 Sao',
-        rewardText: '+100 sao',
-        icon: Icons.star_rounded,
-        emoji: '⭐',
-        activeColor: const Color(0xFFFEF9C3),
-      ),
-      BadgeItem(
-        key: '7_streak',
-        title: 'Chăm Chỉ 7 Ngày',
-        rewardText: '+70 sao',
-        icon: Icons.local_fire_department_rounded,
-        emoji: '🔥',
-        activeColor: const Color(0xFFFFEDD5),
-      ),
-      BadgeItem(
-        key: 'pron_master',
-        title: 'Bậc Thầy Phát Âm',
-        rewardText: 'Cần đạt 90% phát âm',
-        icon: Icons.mic_rounded,
-        emoji: '🎤',
-        activeColor: const Color(0xFFF3E8FF),
-      ),
-      BadgeItem(
-        key: 'quiz_champ',
-        title: 'Nhà Vô Địch Quiz',
-        rewardText: 'Hoàn thành 5 bài Quiz',
-        icon: Icons.emoji_events_rounded,
-        emoji: '🏆',
-        activeColor: const Color(0xFFFFF7ED),
-      ),
-      BadgeItem(
-        key: 'explorer',
-        title: 'Nhà Thám Hiểm',
-        rewardText: 'Mở khóa tất cả chủ đề',
-        icon: Icons.map_rounded,
-        emoji: '🗺️',
-        activeColor: const Color(0xFFE0F2FE),
-      ),
-      BadgeItem(
-        key: 'boss_slayer',
-        title: 'Dũng Sĩ Diệt Boss',
-        rewardText: 'Vượt qua Boss Battle',
-        icon: Icons.gavel_rounded,
-        emoji: '⚔️',
-        activeColor: const Color(0xFFFEE2E2),
-      ),
-    ];
+    final List<BadgeItem> badges = progressProvider.activeDefinitions.isNotEmpty
+        ? progressProvider.activeDefinitions.map((def) {
+            IconData icon = Icons.emoji_events_rounded;
+            String emoji = '🏆';
+            Color activeColor = const Color(0xFFFFF7ED);
+            String rewardText = '';
+
+            if (def.badgeUrl == 'first_lesson') {
+              icon = Icons.book_rounded;
+              emoji = '📖';
+              activeColor = const Color(0xFFE0F2FE);
+              rewardText = '+10 sao';
+            } else if (def.badgeUrl == '10_lessons') {
+              icon = Icons.track_changes_rounded;
+              emoji = '🎯';
+              activeColor = const Color(0xFFFFE4E6);
+              rewardText = '+50 sao';
+            } else if (def.badgeUrl == '100_stars') {
+              icon = Icons.star_rounded;
+              emoji = '⭐';
+              activeColor = const Color(0xFFFEF9C3);
+              rewardText = '+100 sao';
+            } else if (def.badgeUrl == '7_streak') {
+              icon = Icons.local_fire_department_rounded;
+              emoji = '🔥';
+              activeColor = const Color(0xFFFFEDD5);
+              rewardText = '+70 sao';
+            } else if (def.badgeUrl == 'pron_master') {
+              icon = Icons.mic_rounded;
+              emoji = '🎤';
+              activeColor = const Color(0xFFF3E8FF);
+              rewardText = 'Cần đạt 90% phát âm';
+            } else if (def.badgeUrl == 'quiz_champ') {
+              icon = Icons.emoji_events_rounded;
+              emoji = '🏆';
+              activeColor = const Color(0xFFFFF7ED);
+              rewardText = 'Hoàn thành 5 bài Quiz';
+            } else if (def.badgeUrl == 'explorer') {
+              icon = Icons.map_rounded;
+              emoji = '🗺️';
+              activeColor = const Color(0xFFE0F2FE);
+              rewardText = 'Mở khóa tất cả chủ đề';
+            } else if (def.badgeUrl == 'boss_slayer') {
+              icon = Icons.gavel_rounded;
+              emoji = '⚔️';
+              activeColor = const Color(0xFFFEE2E2);
+              rewardText = 'Vượt qua Boss Battle';
+            } else {
+              rewardText = def.description ?? '';
+            }
+
+            return BadgeItem(
+              key: def.badgeUrl ?? def.type,
+              title: def.name,
+              rewardText: rewardText,
+              icon: icon,
+              emoji: emoji,
+              activeColor: activeColor,
+            );
+          }).toList()
+        : [
+            BadgeItem(
+              key: 'first_lesson',
+              title: 'Bài Học Đầu Tiên',
+              rewardText: '+10 sao',
+              icon: Icons.book_rounded,
+              emoji: '📖',
+              activeColor: const Color(0xFFE0F2FE),
+            ),
+            BadgeItem(
+              key: '10_lessons',
+              title: 'Hoàn Thành 10 Bài',
+              rewardText: '+50 sao',
+              icon: Icons.track_changes_rounded,
+              emoji: '🎯',
+              activeColor: const Color(0xFFFFE4E6),
+            ),
+            BadgeItem(
+              key: '100_stars',
+              title: 'Đạt 100 Sao',
+              rewardText: '+100 sao',
+              icon: Icons.star_rounded,
+              emoji: '⭐',
+              activeColor: const Color(0xFFFEF9C3),
+            ),
+            BadgeItem(
+              key: '7_streak',
+              title: 'Chăm Chỉ 7 Ngày',
+              rewardText: '+70 sao',
+              icon: Icons.local_fire_department_rounded,
+              emoji: '🔥',
+              activeColor: const Color(0xFFFFEDD5),
+            ),
+            BadgeItem(
+              key: 'pron_master',
+              title: 'Bậc Thầy Phát Âm',
+              rewardText: 'Cần đạt 90% phát âm',
+              icon: Icons.mic_rounded,
+              emoji: '🎤',
+              activeColor: const Color(0xFFF3E8FF),
+            ),
+            BadgeItem(
+              key: 'quiz_champ',
+              title: 'Nhà Vô Địch Quiz',
+              rewardText: 'Hoàn thành 5 bài Quiz',
+              icon: Icons.emoji_events_rounded,
+              emoji: '🏆',
+              activeColor: const Color(0xFFFFF7ED),
+            ),
+            BadgeItem(
+              key: 'explorer',
+              title: 'Nhà Thám Hiểm',
+              rewardText: 'Mở khóa tất cả chủ đề',
+              icon: Icons.map_rounded,
+              emoji: '🗺️',
+              activeColor: const Color(0xFFE0F2FE),
+            ),
+            BadgeItem(
+              key: 'boss_slayer',
+              title: 'Dũng Sĩ Diệt Boss',
+              rewardText: 'Vượt qua Boss Battle',
+              icon: Icons.gavel_rounded,
+              emoji: '⚔️',
+              activeColor: const Color(0xFFFEE2E2),
+            ),
+          ];
 
     bool isBadgeUnlocked(BadgeItem badge) {
       if (badge.key == 'first_lesson' && completedLessonsCount > 0) return true;
@@ -170,7 +230,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           bottom: false,
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(16, widget.isTab ? 16 : 12, 16, 100),
+            padding: EdgeInsets.fromLTRB(16, widget.isTab ? (70.0 + 16.0) : (56.0 + 12.0), 16, 100),
             child: Column(
               children: [
                 // ── Top Glassmorphic Treasure Banner ──

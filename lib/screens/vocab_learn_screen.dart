@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../models/kidio_models.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
+import '../providers/child_provider.dart';
+import '../local/cache_service.dart';
 
 class VocabLearnScreen extends StatefulWidget {
   final List<Vocabulary> vocabularies;
@@ -147,6 +149,15 @@ class _VocabLearnScreenState extends State<VocabLearnScreen>
   }
 
   void _showCompletionScreen() {
+    try {
+      final childId = Provider.of<ChildProvider>(context, listen: false).selectedChild?.id;
+      if (childId != null) {
+        CacheService().saveActivityStatus(childId, widget.lessonId, 'vocab', true);
+      }
+    } catch (e) {
+      debugPrint('Error caching vocab status: $e');
+    }
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

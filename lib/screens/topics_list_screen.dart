@@ -411,7 +411,12 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 },
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    MediaQuery.of(context).padding.top + (_isSearching ? 80.0 : 70.0) + 12.0,
+                    20,
+                    24,
+                  ),
                   physics: const BouncingScrollPhysics(),
                   itemCount: topicProvider.topics.length + 1 + (topicProvider.hasMore ? 1 : 0),
                   itemBuilder: (context, index) {

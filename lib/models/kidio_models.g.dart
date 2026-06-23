@@ -122,7 +122,7 @@ Achievement _$AchievementFromJson(Map<String, dynamic> json) => Achievement(
       title: json['name'] as String,
       description: json['description'] as String?,
       iconUrl: json['badgeUrl'] as String?,
-      achievementType: json['achievementType'] as String?,
+      achievementType: json['type'] as String?,
       earnedAt: json['earnedAt'] == null
           ? null
           : DateTime.parse(json['earnedAt'] as String),
@@ -134,7 +134,7 @@ Map<String, dynamic> _$AchievementToJson(Achievement instance) =>
       'name': instance.title,
       'description': instance.description,
       'badgeUrl': instance.iconUrl,
-      'achievementType': instance.achievementType,
+      'type': instance.achievementType,
       'earnedAt': instance.earnedAt?.toIso8601String(),
     };
 
@@ -366,4 +366,30 @@ Map<String, dynamic> _$TtsVoiceToJson(TtsVoice instance) => <String, dynamic>{
       'name': instance.name,
       'locale': instance.locale,
       'gender': instance.gender,
+    };
+
+AchievementDefinition _$AchievementDefinitionFromJson(
+        Map<String, dynamic> json) =>
+    AchievementDefinition(
+      id: json['id'] as String,
+      type: json['type'] as String,
+      threshold: (json['threshold'] as num).toInt(),
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      badgeUrl: json['badgeUrl'] as String?,
+      orderIndex: (json['orderIndex'] as num).toInt(),
+      isActive: json['isActive'] as bool,
+    );
+
+Map<String, dynamic> _$AchievementDefinitionToJson(
+        AchievementDefinition instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'threshold': instance.threshold,
+      'name': instance.name,
+      'description': instance.description,
+      'badgeUrl': instance.badgeUrl,
+      'orderIndex': instance.orderIndex,
+      'isActive': instance.isActive,
     };

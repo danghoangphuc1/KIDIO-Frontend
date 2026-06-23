@@ -11,6 +11,7 @@ import '../providers/pronunciation_provider.dart';
 import '../providers/child_provider.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
+import '../local/cache_service.dart';
 
 class PronunciationChallengeScreen extends StatefulWidget {
   final List<Vocabulary> vocabularies;
@@ -189,6 +190,15 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
   }
 
   void _showCompletionScreen() {
+    try {
+      final childId = Provider.of<ChildProvider>(context, listen: false).selectedChild?.id;
+      if (childId != null) {
+        CacheService().saveActivityStatus(childId, widget.lessonId, 'pron', true);
+      }
+    } catch (e) {
+      debugPrint('Error caching pron status: $e');
+    }
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

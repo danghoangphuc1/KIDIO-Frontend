@@ -1111,4 +1111,60 @@ class MockCacheService extends _i1.Mock implements _i12.CacheService {
         #getLesson,
         [id],
       )) as _i8.Lesson?);
+
+  @override
+  _i9.Future<void> saveActivityStatus(
+    String? childId,
+    String? lessonId,
+    String? activityKey,
+    bool? isCompleted,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #saveActivityStatus,
+          [
+            childId,
+            lessonId,
+            activityKey,
+            isCompleted,
+          ],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+
+  @override
+  bool getActivityStatus(
+    String? childId,
+    String? lessonId,
+    String? activityKey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getActivityStatus,
+          [
+            childId,
+            lessonId,
+            activityKey,
+          ],
+        ),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i9.Future<void> clearActivityStatuses(
+    String? childId,
+    String? lessonId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #clearActivityStatuses,
+          [
+            childId,
+            lessonId,
+          ],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
 }

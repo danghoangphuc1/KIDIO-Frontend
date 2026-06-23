@@ -55,4 +55,23 @@ class CacheService {
     final data = box.get('lesson_$id');
     return data != null ? Lesson.fromJson(Map<String, dynamic>.from(data)) : null;
   }
+
+  Future<void> saveActivityStatus(String childId, String lessonId, String activityKey, bool isCompleted) async {
+    final box = Hive.box(_boxName);
+    await box.put('activity_status_${childId}_${lessonId}_$activityKey', isCompleted);
+  }
+
+  bool getActivityStatus(String childId, String lessonId, String activityKey) {
+    final box = Hive.box(_boxName);
+    return box.get('activity_status_${childId}_${lessonId}_$activityKey', defaultValue: false);
+  }
+
+  Future<void> clearActivityStatuses(String childId, String lessonId) async {
+    final box = Hive.box(_boxName);
+    await box.delete('activity_status_${childId}_${lessonId}_vocab');
+    await box.delete('activity_status_${childId}_${lessonId}_listening');
+    await box.delete('activity_status_${childId}_${lessonId}_pron');
+    await box.delete('activity_status_${childId}_${lessonId}_quiz');
+    await box.delete('activity_status_${childId}_${lessonId}_boss');
+  }
 }

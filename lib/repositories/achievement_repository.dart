@@ -8,6 +8,8 @@ class AchievementRepository {
 
   Future<List<Achievement>> getByChild(String childId) => _api.getByChild(childId);
 
+  Future<List<AchievementDefinition>> getActiveDefinitions() => _api.getActiveDefinitions();
+
   Future<List<Achievement>> getDefinitions() => _api.getDefinitions();
 
   Future<Achievement> getDefinitionById(String id) => _api.getDefinitionById(id);

@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../models/kidio_models.dart';
 import '../repositories/tts_repository.dart';
 import '../api/api_client.dart';
+import '../providers/child_provider.dart';
+import '../local/cache_service.dart';
 
 class BossBattleScreen extends StatefulWidget {
   final List<Vocabulary> vocabularies;
@@ -256,6 +258,15 @@ class _BossBattleScreenState extends State<BossBattleScreen> {
   }
 
   Future<void> _showBattleVictory() async {
+    try {
+      final childId = Provider.of<ChildProvider>(context, listen: false).selectedChild?.id;
+      if (childId != null) {
+        CacheService().saveActivityStatus(childId, widget.lessonId, 'boss', true);
+      }
+    } catch (e) {
+      debugPrint('Error caching boss status: $e');
+    }
+
     await Navigator.push(
       context,
       MaterialPageRoute(

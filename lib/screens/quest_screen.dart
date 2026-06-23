@@ -186,7 +186,7 @@ class _QuestScreenState extends State<QuestScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 12),
+              SizedBox(height: widget.isTab ? (70.0 + 12.0) : 12),
               
               // ── Progress Header Banner ──
               Padding(

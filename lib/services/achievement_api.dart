@@ -21,6 +21,21 @@ class AchievementApi {
     }
   }
 
+  Future<List<AchievementDefinition>> getActiveDefinitions() async {
+    try {
+      final response = await _dio.get('Achievement/active-definitions');
+      final data = response.data['data'];
+      if (data is List) {
+        return data
+            .map((json) => AchievementDefinition.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<List<Achievement>> getDefinitions() async {
     try {
       final response = await _dio.get('Achievement/definitions');

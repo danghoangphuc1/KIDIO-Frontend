@@ -53,19 +53,66 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
     return '📚';
   }
 
-  String _getLessonEmoji(int index) {
-    switch (index) {
-      case 0:
-        return '🐮'; // Cow for Farm Animals
-      case 1:
-        return '🦁'; // Lion for Jungle Animals
-      case 2:
-        return '🐟'; // Fish for Ocean Animals
-      case 3:
-        return '🐦'; // Bird for Birds & Flying Animals
-      default:
-        return '🐼';
+  String _getLessonEmoji(String topicName, String lessonTitle, int index) {
+    final tName = topicName.toLowerCase();
+    final lTitle = lessonTitle.toLowerCase();
+
+    if (lTitle.contains('fruit') || lTitle.contains('trái cây') || lTitle.contains('quả')) {
+      return '🍎';
     }
+    if (lTitle.contains('veggie') || lTitle.contains('vegetable') || lTitle.contains('rau')) {
+      return '🥕';
+    }
+    if (lTitle.contains('color') || lTitle.contains('màu')) {
+      return '🎨';
+    }
+    if (lTitle.contains('number') || lTitle.contains('count') || lTitle.contains('số')) {
+      return '🔢';
+    }
+    if (lTitle.contains('shape') || lTitle.contains('hình')) {
+      return '📐';
+    }
+    if (lTitle.contains('transport') || lTitle.contains('vehicle') || lTitle.contains('xe') || lTitle.contains('vận chuyển')) {
+      return '🚗';
+    }
+    if (lTitle.contains('family') || lTitle.contains('gia đình')) {
+      return '👪';
+    }
+
+    if (tName.contains('animal') || tName.contains('động vật')) {
+      if (lTitle.contains('farm') || lTitle.contains('nông trại')) {
+        return '🐮';
+      }
+      if (lTitle.contains('jungle') || lTitle.contains('rừng')) {
+        return '🐯';
+      }
+      if (lTitle.contains('ocean') || lTitle.contains('biển')) {
+        return '🐟';
+      }
+      if (lTitle.contains('bird') || lTitle.contains('chim')) {
+        return '🐦';
+      }
+      switch (index % 4) {
+        case 0: return '🦁';
+        case 1: return '🐘';
+        case 2: return '🦒';
+        case 3: return '🐼';
+      }
+    }
+
+    switch (index % 5) {
+      case 0:
+        return '📚';
+      case 1:
+        return '✏️';
+      case 2:
+        return '🧠';
+      case 3:
+        return '✨';
+      case 4:
+        return '🌟';
+    }
+    return '📚';
   }
 
   @override
@@ -270,7 +317,7 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                       // Card styling properties based on order and unlock state
                       Color headerBgColor;
                       Color cardBorderColor;
-                      String avatarEmoji = _getLessonEmoji(index);
+                      String avatarEmoji = _getLessonEmoji(widget.topicName, lesson.title, index);
 
                       if (!isUnlocked) {
                         headerBgColor = const Color(0xFFCBD5E1); // Locked Grey
