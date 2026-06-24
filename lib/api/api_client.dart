@@ -24,8 +24,7 @@ class ApiClient {
     }
     if (kDebugMode) {
       // Dành cho phát triển local
-
-      return 'http://10.39.244.5:5109/api/';
+      return 'http://192.168.1.10:5109/api/';
     }
     return 'https://kidio-be-shx1.onrender.com/api/';
   }

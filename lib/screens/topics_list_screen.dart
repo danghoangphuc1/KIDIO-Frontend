@@ -753,37 +753,36 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
   Widget _buildBadgeGuideSheet() {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        height: MediaQuery.of(context).size.height * 0.85,
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 6,
-              decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10)),
-            ),
+            Container(width: 40, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
                 Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 28),
                 SizedBox(width: 8),
-                Text(
-                  'Cách Nhận Huy Hiệu',
-                  style: TextStyle(
-                    fontFamily: 'FredokaOne',
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF1E3A8A),
+                Flexible(
+                  child: Text(
+                    'Cách Nhận Huy Hiệu',
+                    style: TextStyle(
+                      fontFamily: 'FredokaOne',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E3A8A),
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             const Text(
               'Để sưu tập huy hiệu siêu ngầu, con cần chăm chỉ học bài nhé! Học càng nhiều bài học mới, huy hiệu càng hiếm:',
               textAlign: TextAlign.center,
@@ -794,44 +793,20 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
-            Flexible(
-              child: SingleChildScrollView(
+            const SizedBox(height: 24),
+            Expanded(
+              child: ListView(
                 physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildBadgeRuleItem(
-                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png',
-                      'Tân binh dũng cảm',
-                      'Hoàn thành 1 bài học',
-                    ),
-                    _buildBadgeRuleItem(
-                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png',
-                      'Chiến binh thông thái',
-                      'Hoàn thành 2 bài học',
-                    ),
-                    _buildBadgeRuleItem(
-                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png',
-                      'Ngôi sao chớp nhoáng',
-                      'Hoàn thành 3 bài học',
-                    ),
-                    _buildBadgeRuleItem(
-                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png',
-                      'Sắc màu rực rỡ',
-                      'Hoàn thành 4 bài học',
-                    ),
-                    _buildBadgeRuleItem(
-                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png',
-                      'Trái tim kiên cường',
-                      'Hoàn thành 5 bài học',
-                    ),
-                    _buildBadgeRuleItem(
-                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png',
-                      'Bậc thầy kiên nhẫn',
-                      'Hoàn thành 6 bài học',
-                    ),
-                  ],
-                ),
+                children: [
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png', 'Tân binh dũng cảm', 'Hoàn thành 1 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png', 'Chiến binh thông thái', 'Hoàn thành 2 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png', 'Ngôi sao chớp nhoáng', 'Hoàn thành 3 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png', 'Sắc màu rực rỡ', 'Hoàn thành 4 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png', 'Trái tim kiên cường', 'Hoàn thành 5 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png', 'Bậc thầy kiên nhẫn', 'Hoàn thành 6 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png', 'Ngọn lửa nhiệt huyết', 'Hoàn thành 7 bài học'),
+                  _buildBadgeRuleItem('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png', 'Nhà vô địch Trái Đất', 'Hoàn thành 8 bài học'),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -851,6 +826,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -862,7 +838,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB), // Custom light orange-yellow background
+        color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
       ),
@@ -906,7 +882,6 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
   }
 }
 
-// Staggered Map Animated Button
 class _AnimatedMapButton extends StatefulWidget {
   final String text;
   final Color baseColor;
@@ -964,8 +939,11 @@ class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
       ),
     );
   }
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> phuc
 }
 class DashedLinePainter extends CustomPainter {
   final Color color;
