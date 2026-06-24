@@ -143,4 +143,39 @@ class ChildProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> addQuestStars({
+    required String childId,
+    required int stars,
+    required String reason,
+  }) async {
+    try {
+      final result = await _repository.addStars(
+        childId: childId,
+        stars: stars,
+        reason: reason,
+      );
+      if (_selectedChild != null) {
+        final newTotal = result['totalStars'] as int;
+        _selectedChild = Child(
+          id: _selectedChild!.id,
+          name: _selectedChild!.name,
+          age: _selectedChild!.age,
+          avatarUrl: _selectedChild!.avatarUrl,
+          totalStars: newTotal,
+          currentStreakDays: _selectedChild!.currentStreakDays,
+          lastLessonAt: _selectedChild!.lastLessonAt,
+        );
+        final index = _children.indexWhere((c) => c.id == _selectedChild!.id);
+        if (index != -1) {
+          _children[index] = _selectedChild!;
+        }
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error adding quest stars: $e');
+      return false;
+    }
+  }
 }

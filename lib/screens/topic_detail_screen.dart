@@ -150,6 +150,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
               }
               if (childId == null) return false;
               try {
+                if (_cacheService.isLessonCompleted(childId, lessonId)) {
+                  return true;
+                }
                 final cacheBox = Hive.box('kidio_cache');
                 final vocab = cacheBox.get('activity_status_${childId}_${lessonId}_vocab', defaultValue: false);
                 final listening = cacheBox.get('activity_status_${childId}_${lessonId}_listening', defaultValue: false);
@@ -585,8 +588,8 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                                         ),
                                                       ],
                                                     ),
-                                                    // Progress bar for current NOW active lesson (elastic animation)
-                                                    if (!isDone && index == completedCount) ...[
+                                                    // Progress bar for all unlocked, incomplete lessons
+                                                    if (!isDone) ...[
                                                       const SizedBox(height: 6),
                                                       SizedBox(
                                                         width: 100,
@@ -673,11 +676,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                               builder: (context) => LessonDetailScreen(lessonId: lesson.id),
                                             ),
                                           );
-                                          // NOTE: Do NOT call loadChildProgress here.
-                                          // submitProgress() inside LessonDetailScreen already calls
-                                          // loadChildProgress() and awaits its completion before
-                                          // returning. Calling it again clears completedLessons=[]
-                                          // and causes a "not completed" flash on return.
+                                          if (mounted) {
+                                             setState(() {});
+                                           }
                                         },
                                       )
                                     else

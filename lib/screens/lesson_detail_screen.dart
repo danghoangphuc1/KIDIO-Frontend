@@ -195,8 +195,15 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
           _quizCompleted = true;
           _bossCompleted = true;
         });
+        await _cacheService.saveLessonCompleted(childId, widget.lessonId, true);
         await _cacheService.clearActivityStatuses(childId, widget.lessonId);
         await context.read<ChildProvider>().refreshSelectedChild();
+        progressProvider.notifyActivityCompleted(
+          lessonId: widget.lessonId,
+          sectionType: 'lesson',
+          status: 'completed',
+          timestamp: DateTime.now(),
+        );
         _showSuccessDialog();
       }
     } catch (e) {
@@ -258,6 +265,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final progressProvider = context.read<ProgressProvider>();
     final progress = _getCompletedCount() / 5.0;
     final childId = context.read<ChildProvider>().selectedChild?.id ?? '';
 
@@ -544,6 +552,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                     setState(() => _vocabCompleted = true);
                                     if (childId != null) {
                                       await _cacheService.saveActivityStatus(childId, widget.lessonId, 'vocab', true);
+                                      progressProvider.notifyActivityCompleted(
+                                        lessonId: widget.lessonId,
+                                        sectionType: 'vocab',
+                                        status: 'completed',
+                                        timestamp: DateTime.now(),
+                                      );
                                     }
                                   }
                                 },
@@ -574,6 +588,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                     setState(() => _listeningCompleted = true);
                                     if (childId != null) {
                                       await _cacheService.saveActivityStatus(childId, widget.lessonId, 'listening', true);
+                                      progressProvider.notifyActivityCompleted(
+                                        lessonId: widget.lessonId,
+                                        sectionType: 'listening',
+                                        status: 'completed',
+                                        timestamp: DateTime.now(),
+                                      );
                                     }
                                   }
                                 },
@@ -604,6 +624,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                     setState(() => _pronCompleted = true);
                                     if (childId != null) {
                                       await _cacheService.saveActivityStatus(childId, widget.lessonId, 'pron', true);
+                                      progressProvider.notifyActivityCompleted(
+                                        lessonId: widget.lessonId,
+                                        sectionType: 'pron',
+                                        status: 'completed',
+                                        timestamp: DateTime.now(),
+                                      );
                                     }
                                   }
                                 },
@@ -634,6 +660,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                     setState(() => _quizCompleted = true);
                                     if (childId != null) {
                                       await _cacheService.saveActivityStatus(childId, widget.lessonId, 'quiz', true);
+                                      progressProvider.notifyActivityCompleted(
+                                        lessonId: widget.lessonId,
+                                        sectionType: 'quiz',
+                                        status: 'completed',
+                                        timestamp: DateTime.now(),
+                                      );
                                     }
                                   }
                                 },
@@ -664,6 +696,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                                     setState(() => _bossCompleted = true);
                                     if (childId != null) {
                                       await _cacheService.saveActivityStatus(childId, widget.lessonId, 'boss', true);
+                                      progressProvider.notifyActivityCompleted(
+                                        lessonId: widget.lessonId,
+                                        sectionType: 'boss',
+                                        status: 'completed',
+                                        timestamp: DateTime.now(),
+                                      );
                                     }
                                     await _finishLesson();
                                   }

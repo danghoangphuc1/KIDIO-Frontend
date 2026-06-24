@@ -39,27 +39,6 @@ class QuestScreen extends StatefulWidget {
 }
 
 class _QuestScreenState extends State<QuestScreen> {
-  int _pronCount = 0;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Reload pronCount from Hive each time this tab becomes visible.
-    // This ensures Quest 2 shows the latest value without needing a full rebuild.
-    _reloadPronCount();
-  }
-
-  void _reloadPronCount() {
-    try {
-      final childId = context.read<ChildProvider>().selectedChild?.id ?? 'default';
-      final todayStr = DateTime.now().toIso8601String().substring(0, 10);
-      final box = Hive.box('kidio_cache');
-      final count = box.get('daily_pron_count_${childId}_$todayStr', defaultValue: 0) as int;
-      if (mounted && count != _pronCount) {
-        setState(() => _pronCount = count);
-      }
-    } catch (_) {}
-  }
 
   Future<void> _claimReward(Quest quest) async {
     if (!quest.isDone || quest.isClaimed) return;
@@ -72,32 +51,26 @@ class _QuestScreenState extends State<QuestScreen> {
 
     final box = Hive.box('kidio_cache');
     
-    // Save claim status locally
+    // 1. Optimistic local update — save claim status and trigger rebuild immediately
     await box.put('quest_${quest.id}_claimed_${childId}_$todayStr', true);
+    if (mounted) {
+      setState(() {});
+    }
 
-    // Update child's stars in Provider immediately for responsive UI
-    final updatedChild = Child(
-      id: child.id,
-      name: child.name,
-      age: child.age,
-      avatarUrl: child.avatarUrl,
-      totalStars: child.totalStars + quest.reward,
-      currentStreakDays: child.currentStreakDays,
-      lastLessonAt: child.lastLessonAt,
+    // 2. Persist to server (Hướng B)
+    final success = await childProvider.addQuestStars(
+      childId: childId,
+      stars: quest.reward,
+      reason: 'quest_daily_${quest.id}',
     );
-    childProvider.selectChild(updatedChild);
-
-    // Bug #3 fix: Reload the selected child from server so ChildSelectionScreen
-    // star badges stay in sync after claiming the reward.
-    // Use refreshSelectedChild() instead of loadChildren() to avoid a full list
-    // re-fetch that might temporarily show stale star values.
-    childProvider.refreshSelectedChild();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🎉 Nhận thành công ${quest.reward} ⭐! Tổng số sao: ${updatedChild.totalStars} ⭐'),
-          backgroundColor: const Color(0xFF03A566),
+          content: Text(success
+              ? '🎉 Nhận thành công ${quest.reward} ⭐! Tổng số sao: ${childProvider.selectedChild?.totalStars ?? 0} ⭐'
+              : '⭐ Đã lưu offline, sẽ đồng bộ khi có mạng!'),
+          backgroundColor: success ? const Color(0xFF03A566) : Colors.orange,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -132,8 +105,7 @@ class _QuestScreenState extends State<QuestScreen> {
 
     // 2. Daily pronunciations count in Hive
     final box = Hive.box('kidio_cache');
-    // Use local state for pronCount so Quest 2 updates without switching tabs.
-    final pronCount = _pronCount;
+    final pronCount = box.get('daily_pron_count_${childId}_$todayStr', defaultValue: 0) as int;
 
     // 3. Stars earned today
     final starsToday = progressProvider.completedLessons.where((p) {

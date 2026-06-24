@@ -26,4 +26,11 @@ class ChildRepository {
   Future<void> restoreChild(String childId) => _childApi.restoreChild(childId);
 
   Future<void> hardDeleteChild(String childId) => _childApi.hardDeleteChild(childId);
+
+  Future<Map<String, dynamic>> addStars({
+    required String childId,
+    required int stars,
+    required String reason,
+  }) =>
+      _childApi.addStars(childId: childId, stars: stars, reason: reason);
 }

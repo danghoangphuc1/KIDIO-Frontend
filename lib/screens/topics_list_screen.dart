@@ -9,9 +9,6 @@ import '../providers/child_provider.dart';
 import '../providers/progress_provider.dart';
 import 'topic_detail_screen.dart';
 import 'achievements_screen.dart';
-import 'quest_screen.dart';
-import 'parent_dashboard_screen.dart';
-import '../widgets/parent_pin_dialogs.dart';
 import '../widgets/glassmorphic_widgets.dart';
 
 class TopicsListScreen extends StatefulWidget {
@@ -65,8 +62,6 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<ProgressProvider>().clearProgress();
-              context.read<ChildProvider>().deselectChild();
               context.read<AuthProvider>().logout();
             },
             child: const Text('CÓ', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -80,17 +75,13 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildTopicsGrid(),
-      const QuestScreen(isTab: true),
-      const AchievementsScreen(isTab: true),
-      const ParentDashboardScreen(isTab: true),
+      const AchievementsScreen(),
     ];
 
     return Scaffold(
-      extendBodyBehindAppBar: _currentIndex != 3,
-      appBar: _currentIndex == 3
-          ? null
-          : AppBar(
-              toolbarHeight: _isSearching ? 80 : 70,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        toolbarHeight: _isSearching ? 80 : 70,
         backgroundColor: Colors.white.withOpacity(0.15),
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -109,13 +100,12 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 final selectedChild = childProvider.selectedChild;
                 final stars = selectedChild?.totalStars ?? 0;
                 
-                if (_currentIndex == 2) {
+                if (_currentIndex == 1) {
                   return Row(
                     children: [
                       const Text(
                         'Thành tích của con',
                         style: TextStyle(
-                          fontFamily: 'FredokaOne',
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF1E3A8A),
@@ -134,17 +124,6 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                         child: const Icon(Icons.help_outline_rounded, color: Colors.blueAccent, size: 24),
                       ),
                     ],
-                  );
-                }
-                if (_currentIndex == 1) {
-                  return const Text(
-                    'Daily Quests',
-                    style: TextStyle(
-                      fontFamily: 'FredokaOne',
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1E3A8A),
-                    ),
                   );
                 }
 
@@ -282,61 +261,29 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: BottomNavigationBar(
               currentIndex: _currentIndex,
-              onTap: (index) async {
-                if (index == 3) {
-                  final authProvider = context.read<AuthProvider>();
-                  final hasPin = await authProvider.hasParentPin();
-                  if (!mounted) return;
-                  if (hasPin) {
-                    ParentPinDialogs.showVerifyPinDialog(
-                      context,
-                      onSuccess: () {
-                        setState(() {
-                          _currentIndex = 3;
-                          _isSearching = false;
-                        });
-                      },
-                    );
-                  } else {
-                    setState(() {
-                      _currentIndex = 3;
-                      _isSearching = false;
-                    });
-                  }
-                } else {
-                  setState(() {
-                    _currentIndex = index;
-                    _isSearching = false;
-                  });
-                }
+              onTap: (index) {
+                setState(() {
+                  _currentIndex = index;
+                  _isSearching = false;
+                });
               },
               backgroundColor: Colors.white.withOpacity(0.15),
               elevation: 0,
               type: BottomNavigationBarType.fixed,
-              selectedItemColor: const Color(0xFFFF2E93),
-              unselectedItemColor: const Color(0xFF94A3B8),
+              selectedItemColor: Colors.blueAccent,
+              unselectedItemColor: Colors.blueGrey.shade300,
               selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
               items: const [
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.map_rounded, size: 26),
-                  activeIcon: Icon(Icons.map_rounded, size: 28),
-                  label: 'Map',
+                  icon: Icon(Icons.auto_stories_rounded, size: 28),
+                  activeIcon: Icon(Icons.auto_stories_rounded, size: 30),
+                  label: 'BÀI HỌC',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.flash_on_rounded, size: 26),
-                  activeIcon: Icon(Icons.flash_on_rounded, size: 28),
-                  label: 'Quests',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.emoji_events_rounded, size: 26),
-                  activeIcon: Icon(Icons.emoji_events_rounded, size: 28),
-                  label: 'Awards',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.people_alt_rounded, size: 26),
-                  activeIcon: Icon(Icons.people_alt_rounded, size: 28),
-                  label: 'Parent',
+                  icon: Icon(Icons.workspace_premium_rounded, size: 28),
+                  activeIcon: Icon(Icons.workspace_premium_rounded, size: 30),
+                  label: 'THÀNH TÍCH',
                 ),
               ],
             ),
@@ -426,11 +373,12 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                   }
                 },
                 child: ListView.builder(
-                  controller: _scrollController,                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    MediaQuery.of(context).padding.top + (_isSearching ? 80.0 : 70.0) + 12.0,
-                    20,
-                    24,
+                  controller: _scrollController,
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 120,
+                    bottom: 24,
+                    left: 20,
+                    right: 20,
                   ),
                   physics: const BouncingScrollPhysics(),
                   itemCount: topicProvider.topics.length + 1 + (topicProvider.hasMore ? 1 : 0),
@@ -478,72 +426,66 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
       return localDate.year == today.year && localDate.month == today.month && localDate.day == today.day;
     }).length;
 
-    final progressValue = completedToday >= 1 ? 1.0 : 0.0;
+    final double progressPercent = (completedToday / 1.0).clamp(0.0, 1.0);
+    final isDone = completedToday >= 1;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = 1;
-        });
-      },
-      child: GlassCard(
-        margin: const EdgeInsets.only(bottom: 24),
-        borderRadius: BorderRadius.circular(24),
-        padding: const EdgeInsets.all(16),
-        fillColor: Colors.amber.shade50.withOpacity(0.35),
-        borderColor: Colors.amber.shade200.withOpacity(0.6),
-        borderWidth: 2.5,
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: const Text('🏆', style: TextStyle(fontSize: 28)),
+    return GlassCard(
+      margin: const EdgeInsets.only(bottom: 24),
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(16),
+      fillColor: Colors.amber.shade50.withOpacity(0.35),
+      borderColor: Colors.amber.shade200.withOpacity(0.6),
+      borderWidth: 2.5,
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B),
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Nhiệm Vụ Hàng Ngày',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF78350F),
-                    ),
+            alignment: Alignment.center,
+            child: const Text('🏆', style: TextStyle(fontSize: 28)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Nhiệm Vụ Hàng Ngày',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF78350F),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    completedToday >= 1
-                        ? 'Đã hoàn thành! Nhận thưởng trong tab Quests 🎉'
-                        : 'Hoàn thành 1 bài học để nhận thêm 10 ⭐! ($completedToday/1)',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF92400E),
-                      fontWeight: FontWeight.w600,
-                    ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isDone 
+                      ? 'Nhiệm vụ đã hoàn thành! Nhận thưởng trong màn hình Nhiệm vụ 🎉'
+                      : 'Hoàn thành 1 bài học để nhận thêm 10 ⭐! ($completedToday/1)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF92400E),
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(6)),
-                    child: LinearProgressIndicator(
-                      value: progressValue,
-                      backgroundColor: const Color(0xFFFEF3C7),
-                      color: const Color(0xFFF59E0B),
-                      minHeight: 8,
-                    ),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(6)),
+                  child: LinearProgressIndicator(
+                    value: progressPercent,
+                    backgroundColor: const Color(0xFFFEF3C7),
+                    color: const Color(0xFFF59E0B),
+                    minHeight: 8,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -765,18 +707,13 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 28),
-                SizedBox(width: 8),
-                Flexible(
+              children: [
+                const Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 32),
+                const SizedBox(width: 8),
+                const Flexible(
                   child: Text(
                     'Cách Nhận Huy Hiệu',
-                    style: TextStyle(
-                      fontFamily: 'FredokaOne',
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1E3A8A),
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -786,12 +723,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
             const Text(
               'Để sưu tập huy hiệu siêu ngầu, con cần chăm chỉ học bài nhé! Học càng nhiều bài học mới, huy hiệu càng hiếm:',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.blueGrey,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 15, color: Colors.blueGrey, height: 1.4),
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -820,10 +752,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Đã Rõ Cách Nhận!',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
-                ),
+                child: const Text('Đã Rõ Cách Nhận!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
               ),
             ),
             const SizedBox(height: 16),
@@ -838,9 +767,9 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+        color: Colors.orange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -855,24 +784,9 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'FredokaOne',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFFD97706),
-                  ),
-                ),
+                Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.orange.shade800)),
                 const SizedBox(height: 4),
-                Text(
-                  range,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.blueGrey,
-                  ),
-                ),
+                Text(range, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
               ],
             ),
           ),
@@ -882,6 +796,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
   }
 }
 
+// Staggered Map Animated Button
 class _AnimatedMapButton extends StatefulWidget {
   final String text;
   final Color baseColor;
@@ -939,11 +854,6 @@ class _AnimatedMapButtonState extends State<_AnimatedMapButton> {
       ),
     );
   }
-<<<<<<< HEAD
-
-
-=======
->>>>>>> phuc
 }
 class DashedLinePainter extends CustomPainter {
   final Color color;

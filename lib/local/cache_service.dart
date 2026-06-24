@@ -74,4 +74,19 @@ class CacheService {
     await box.delete('activity_status_${childId}_${lessonId}_quiz');
     await box.delete('activity_status_${childId}_${lessonId}_boss');
   }
+
+  Future<void> saveLessonCompleted(String childId, String lessonId, bool isCompleted, {DateTime? completedAt}) async {
+    final box = Hive.box(_boxName);
+    await box.put('lesson_completed_${childId}_$lessonId', isCompleted);
+    if (isCompleted) {
+      await box.put('lesson_completed_at_${childId}_$lessonId', (completedAt ?? DateTime.now()).toIso8601String());
+    } else {
+      await box.delete('lesson_completed_at_${childId}_$lessonId');
+    }
+  }
+
+  bool isLessonCompleted(String childId, String lessonId) {
+    final box = Hive.box(_boxName);
+    return box.get('lesson_completed_${childId}_$lessonId', defaultValue: false);
+  }
 }

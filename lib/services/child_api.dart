@@ -84,4 +84,20 @@ class ChildApi {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> addStars({
+    required String childId,
+    required int stars,
+    required String reason,
+  }) async {
+    try {
+      final response = await _dio.post(
+        'Child/$childId/add-stars',
+        data: {'stars': stars, 'reason': reason},
+      );
+      return response.data['data'] as Map<String, dynamic>;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

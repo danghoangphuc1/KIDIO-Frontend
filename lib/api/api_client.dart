@@ -22,11 +22,9 @@ class ApiClient {
     if (envUrl.isNotEmpty) {
       return envUrl;
     }
-    if (kDebugMode) {
-      // Dành cho phát triển local
-      return 'http://192.168.1.10:5109/api/';
-    }
-    return 'https://kidio-be-shx1.onrender.com/api/';
+    // Temporarily calling local API instead of Render because Render free tier blocks SMTP ports
+    return 'http://192.168.1.10:5109/api/';
+    // return 'https://kidio-be.onrender.com/api/';
   }
   Future<bool> Function()? onRefreshToken;
 

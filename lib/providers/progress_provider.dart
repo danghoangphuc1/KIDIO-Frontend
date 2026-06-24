@@ -116,6 +116,7 @@ class ProgressProvider extends ChangeNotifier {
     } finally {
       // 3. Merge remaining offline unsynced progress entries to ensure correct UI feedback
       _mergeOfflineProgress(childId);
+      _mergeLocalCompletedLessons(childId);
       _isLoading = false;
       notifyListeners();
     }
@@ -168,6 +169,7 @@ class ProgressProvider extends ChangeNotifier {
       // Load offline cached data and merge current queue for immediate UI satisfaction
       _loadOfflineFallback(childId);
       _mergeOfflineProgress(childId);
+      _mergeLocalCompletedLessons(childId);
       notifyListeners();
 
       // Return a simulated LessonProgress representing the locally completed lesson
@@ -383,5 +385,146 @@ class ProgressProvider extends ChangeNotifier {
     
     // Default to API check
     return await _progressRepository.getLessonProgress(childId, lessonId);
+  }
+
+  void _mergeLocalCompletedLessons(String childId) {
+    final box = Hive.box('kidio_cache');
+    final prefix = 'lesson_completed_${childId}_';
+    
+    // Find all lessonIds completed locally by this child
+    final completedLessonIds = <String>[];
+    for (var key in box.keys) {
+      if (key is String && key.startsWith(prefix)) {
+        if (box.get(key) == true) {
+          final lessonId = key.replaceFirst(prefix, '');
+          completedLessonIds.add(lessonId);
+        }
+      }
+    }
+
+    if (completedLessonIds.isEmpty) return;
+
+    for (var lessonId in completedLessonIds) {
+      final alreadyCompleted = _completedLessons.any((l) => l.lessonId == lessonId);
+      if (!alreadyCompleted) {
+        // Find lesson title if cached
+        String? lessonTitle;
+        for (var key in box.keys) {
+          if (key.toString().startsWith('lessons_topic_')) {
+            final List<dynamic>? cachedLessons = box.get(key);
+            if (cachedLessons != null) {
+              final match = cachedLessons.firstWhere(
+                (l) => l['id'] == lessonId,
+                orElse: () => null,
+              );
+              if (match != null) {
+                lessonTitle = match['title'] as String?;
+                break;
+              }
+            }
+          }
+        }
+
+        // Get actual completion date if saved, default to DateTime.now()
+        final completedAtString = box.get('lesson_completed_at_${childId}_$lessonId');
+        final completedAt = completedAtString != null
+            ? DateTime.tryParse(completedAtString as String) ?? DateTime.now()
+            : DateTime.now();
+
+        // Add to completed lessons list
+        _completedLessons.insert(0, LessonProgress(
+          id: 'local_completed_${lessonId}',
+          childId: childId,
+          lessonId: lessonId,
+          lessonTitle: lessonTitle,
+          isCompleted: true,
+          starsEarned: 3,
+          scorePercent: 100,
+          timeSpentSeconds: 0,
+          completedAt: completedAt,
+        ));
+
+        // Update child summary
+        if (_summary != null) {
+          // Find topicId from cached lessons
+          String? topicId;
+          for (var key in box.keys) {
+            if (key.toString().startsWith('lessons_topic_')) {
+              final List<dynamic>? cachedLessons = box.get(key);
+              if (cachedLessons != null) {
+                final containsLesson = cachedLessons.any((l) => l['id'] == lessonId);
+                if (containsLesson) {
+                  topicId = key.toString().replaceFirst('lessons_topic_', '');
+                  break;
+                }
+              }
+            }
+          }
+
+          if (topicId == null) {
+            for (var page = 1; page <= 5; page++) {
+              final List<dynamic>? cachedTopics = box.get('topics_page_$page');
+              if (cachedTopics != null) {
+                for (var t in cachedTopics) {
+                  final lessons = t['lessons'] as List<dynamic>?;
+                  if (lessons != null && lessons.any((l) => l['id'] == lessonId)) {
+                    topicId = t['id'];
+                    break;
+                  }
+                }
+              }
+              if (topicId != null) break;
+            }
+          }
+
+          List<TopicProgressItem> updatedTopicProgresses = List.from(_summary!.topicProgresses);
+          if (topicId != null) {
+            final tpIdx = updatedTopicProgresses.indexWhere((tp) => tp.topicId == topicId);
+            if (tpIdx != -1) {
+              final currentItem = updatedTopicProgresses[tpIdx];
+              final newCompleted = currentItem.completedLessons + 1;
+              final newPercent = currentItem.totalLessons == 0 
+                  ? 0 
+                  : (newCompleted * 100 ~/ currentItem.totalLessons);
+              
+              updatedTopicProgresses[tpIdx] = TopicProgressItem(
+                topicId: currentItem.topicId,
+                topicName: currentItem.topicName,
+                totalLessons: currentItem.totalLessons,
+                completedLessons: newCompleted,
+                progressPercent: newPercent > 100 ? 100 : newPercent,
+              );
+            }
+          }
+
+          _summary = ChildProgressSummary(
+            childId: _summary!.childId,
+            childName: _summary!.childName,
+            totalLessonsCompleted: _summary!.totalLessonsCompleted + 1,
+            totalStars: _summary!.totalStars + 3,
+            currentStreakDays: _summary!.currentStreakDays,
+            topicProgresses: updatedTopicProgresses,
+          );
+        }
+      }
+    }
+  }
+
+  Map<String, dynamic>? _lastActivityEvent;
+  Map<String, dynamic>? get lastActivityEvent => _lastActivityEvent;
+
+  void notifyActivityCompleted({
+    required String lessonId,
+    required String sectionType,
+    required String status,
+    required DateTime timestamp,
+  }) {
+    _lastActivityEvent = {
+      'lessonId': lessonId,
+      'sectionType': sectionType,
+      'status': status,
+      'timestamp': timestamp,
+    };
+    notifyListeners();
   }
 }
