@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui';
 import '../providers/dashboard_provider.dart';
 import '../providers/child_provider.dart';
 import '../providers/progress_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/kidio_models.dart';
 import '../widgets/parent_pin_dialogs.dart' as import_parent_pin_dialogs;
+import '../widgets/glassmorphic_widgets.dart';
 import 'change_password_screen.dart';
 import '../utils/snackbar_utils.dart';
 import 'create_profile_screen.dart';
@@ -65,27 +67,41 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
     final dashboardProvider = context.watch<DashboardProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F8FD),
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
+        backgroundColor: Colors.white.withOpacity(0.4),
+        elevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              color: Colors.transparent,
+            ),
+          ),
+        ),
         leading: widget.isTab
             ? null
             : IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF1A237E)),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E3A8A)),
                 onPressed: () => Navigator.pop(context),
               ),
         title: const Text(
           'Bảng điều khiển Phụ huynh',
-          style: TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+            fontFamily: 'FredokaOne',
+            color: Color(0xFF1E3A8A),
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.blueAccent),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3B82F6)),
             onPressed: _reloadData,
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.settings, color: Colors.blueAccent),
+            icon: const Icon(Icons.settings_rounded, color: Color(0xFF3B82F6)),
             tooltip: 'Cài đặt Phụ huynh',
             onSelected: (value) async {
               if (value == 'change_pin') {
@@ -137,10 +153,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          labelColor: Colors.blueAccent,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.blueAccent,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          labelColor: const Color(0xFF1E3A8A),
+          unselectedLabelColor: const Color(0x991E3A8A),
+          indicatorColor: const Color(0xFF3B82F6),
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelStyle: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, fontSize: 13),
           tabs: const [
             Tab(text: 'Tổng Quan', icon: Icon(Icons.dashboard_outlined)),
             Tab(text: 'Nhật Ký Học', icon: Icon(Icons.history_edu_rounded)), // Tab mới kết nối API Progress
@@ -149,17 +166,22 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           ],
         ),
       ),
-      body: dashboardProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildOverviewTab(context, dashboardProvider.overview),
-                    _buildActivityLogTab(context), // Tab mới
-                    _buildChildrenTab(context),
-                    _buildComparisonTab(context, dashboardProvider.overview),
-                  ],
-                ),
+      body: PlayfulBackground(
+        child: SafeArea(
+          top: false,
+          child: dashboardProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildOverviewTab(context, dashboardProvider.overview),
+                        _buildActivityLogTab(context), // Tab mới
+                        _buildChildrenTab(context),
+                        _buildComparisonTab(context, dashboardProvider.overview),
+                      ],
+                    ),
+        ),
+      ),
     );
   }
 
@@ -174,56 +196,80 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
     }
 
     final selectedId = _selectedChildIdForLog ?? children.first.id;
+    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight + 72.0;
 
-    return Column(
-      children: [
+    return Padding(
+      padding: EdgeInsets.only(top: topPadding),
+      child: Column(
+        children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              labelText: 'Chọn trẻ để xem nhật ký',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              filled: true,
-              fillColor: Colors.white,
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            borderRadius: BorderRadius.circular(20),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Chọn trẻ để xem nhật ký',
+                  labelStyle: TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.bold),
+                  border: InputBorder.none,
+                ),
+                dropdownColor: const Color(0xFFEFF6FF),
+                value: selectedId,
+                items: children.map((child) => DropdownMenuItem(
+                  value: child.id,
+                  child: Text(child.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                )).toList(),
+                onChanged: (val) {
+                  if (val != null && val != _selectedChildIdForLog) {
+                    setState(() => _selectedChildIdForLog = val);
+                    context.read<ProgressProvider>().loadChildProgress(val);
+                  }
+                },
+              ),
             ),
-            value: selectedId,
-            items: children.map((child) => DropdownMenuItem(
-              value: child.id,
-              child: Text(child.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            )).toList(),
-            onChanged: (val) {
-              if (val != null && val != _selectedChildIdForLog) {
-                setState(() => _selectedChildIdForLog = val);
-                context.read<ProgressProvider>().loadChildProgress(val);
-              }
-            },
           ),
         ),
         Expanded(
           child: progressProvider.isLoading
             ? const Center(child: CircularProgressIndicator())
             : activities.isEmpty
-              ? const Center(child: Text('Chưa có hoạt động học tập nào gần đây.'))
+              ? const Center(child: Text('Chưa có hoạt động học tập nào gần đây.', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))))
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                   itemCount: activities.length,
                   itemBuilder: (context, index) {
                     final activity = activities[index];
-                    return Card(
+                    return GlassCard(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(24),
+                      padding: const EdgeInsets.all(16),
+                      fillColor: Colors.white.withOpacity(0.4),
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.blueAccent,
-                          child: Icon(Icons.book, color: Colors.white),
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE0F2FE),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.book_rounded, color: Color(0xFF0284C7)),
                         ),
-                        title: const Text('Hoàn thành bài học', style: TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Đạt ${activity.scorePercent}% - Nhận ${activity.starsEarned} ⭐'),
+                        title: Text(
+                          activity.lessonTitle?.isNotEmpty == true
+                              ? activity.lessonTitle!
+                              : 'Bài học #${index + 1}',
+                          style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
+                        ),
+                        subtitle: Text(
+                          'Đạt ${activity.scorePercent}% - Nhận ${activity.starsEarned} ⭐',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
+                        ),
                         trailing: Text(
                           activity.completedAt != null 
                             ? '${activity.completedAt!.day}/${activity.completedAt!.month}' 
                             : '',
-                          style: const TextStyle(color: Colors.grey),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0x991E3A8A)),
                         ),
                       ),
                     );
@@ -231,12 +277,13 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                 ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   // --- TAB 1: OVERVIEW STATISTICS ---
   Widget _buildOverviewTab(BuildContext context, ParentDashboardOverviewResponse? overview) {
-    if (overview == null) return const Center(child: Text('Không có dữ liệu tổng quan.'));
+    if (overview == null) return const Center(child: Text('Không có dữ liệu tổng quan.', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))));
 
     final formatDuration = (int totalSecs) {
       if (totalSecs < 60) return '$totalSecs giây';
@@ -247,65 +294,106 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
       return '$hrs giờ $remMins phút';
     };
 
+    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight + 72.0 + 16.0;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.fromLTRB(16, topPadding, 16, 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Xin chào phụ huynh, ${overview.parentName}!',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Cập nhật lúc: ${overview.generatedAt.toLocal().toString().split('.')[0]}',
-            style: const TextStyle(fontSize: 13, color: Colors.grey),
+          GlassCard(
+            fillColor: Colors.white.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(24),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Xin chào phụ huynh, ${overview.parentName}!',
+                  style: const TextStyle(
+                    fontFamily: 'FredokaOne',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Cập nhật lúc: ${overview.generatedAt.toLocal().toString().split('.')[0]}',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF0369A1), fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
-                );
-              },
-              icon: const Icon(Icons.lock_open, size: 20),
-              label: const Text('THAY ĐỔI MẬT KHẨU', style: TextStyle(fontWeight: FontWeight.bold)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.indigo,
-                side: const BorderSide(color: Colors.indigoAccent, width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          Row(
+            children: [
+              Expanded(
+                child: GlassCard(
+                  padding: EdgeInsets.zero,
+                  borderRadius: BorderRadius.circular(20),
+                  fillColor: Colors.indigo.withOpacity(0.1),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.lock_open_rounded, size: 18, color: Color(0xFF1E3A8A)),
+                          SizedBox(width: 8),
+                          Text(
+                            'ĐỔI MẬT KHẨU',
+                            style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF1E3A8A)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                import_parent_pin_dialogs.ParentPinDialogs.showVerifyPinDialog(
-                  context,
-                  onSuccess: () {
-                    // Sau khi nhập đúng PIN cũ, hiển thị dialog tạo PIN mới
-                    import_parent_pin_dialogs.ParentPinDialogs.showCreatePinDialog(context);
-                  },
-                );
-              },
-              icon: const Icon(Icons.dialpad, size: 20),
-              label: const Text('THAY ĐỔI MÃ PIN', style: TextStyle(fontWeight: FontWeight.bold)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.indigo,
-                side: const BorderSide(color: Colors.indigoAccent, width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GlassCard(
+                  padding: EdgeInsets.zero,
+                  borderRadius: BorderRadius.circular(20),
+                  fillColor: Colors.indigo.withOpacity(0.1),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      import_parent_pin_dialogs.ParentPinDialogs.showVerifyPinDialog(
+                        context,
+                        onSuccess: () {
+                          import_parent_pin_dialogs.ParentPinDialogs.showCreatePinDialog(context);
+                        },
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.dialpad_rounded, size: 18, color: Color(0xFF1E3A8A)),
+                          SizedBox(width: 8),
+                          Text(
+                            'ĐỔI MÃ PIN',
+                            style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF1E3A8A)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
           const SizedBox(height: 24),
 
@@ -316,12 +404,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.4,
+            childAspectRatio: 1.35,
             children: [
-              _buildStatCard('Số bé đang học', '${overview.totalChildren}', Icons.child_care, Colors.orangeAccent),
-              _buildStatCard('Tổng bài đã học', '${overview.totalLessonsCompleted}', Icons.auto_stories, Colors.blueAccent),
-              _buildStatCard('Ngôi sao thu hoạch', '${overview.totalStars}', Icons.star, Colors.amber),
-              _buildStatCard('Thời gian học', formatDuration(overview.totalTimeSpentSeconds), Icons.timer, Colors.green),
+              _buildStatCard('Số bé đang học', '${overview.totalChildren}', Icons.child_care_rounded, Colors.orangeAccent),
+              _buildStatCard('Tổng bài đã học', '${overview.totalLessonsCompleted}', Icons.auto_stories_rounded, Colors.blueAccent),
+              _buildStatCard('Ngôi sao đã nhận', '${overview.totalStars}', Icons.star_rounded, Colors.amber),
+              _buildStatCard('Thời gian học', formatDuration(overview.totalTimeSpentSeconds), Icons.timer_rounded, Colors.green),
             ],
           ),
           const SizedBox(height: 24),
@@ -329,12 +417,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           // Weekly progress logs
           const Row(
             children: [
-              Icon(Icons.calendar_month, color: Colors.indigo),
+              Icon(Icons.calendar_month_rounded, color: Color(0xFF1E3A8A)),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Hoạt động học tập hàng tuần',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                  style: TextStyle(fontFamily: 'FredokaOne', fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -342,11 +430,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           ),
           const SizedBox(height: 12),
           overview.weeklyProgress.isEmpty
-              ? Container(
+              ? GlassCard(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(20),
                   child: const Center(
-                    child: Text('Chưa có hoạt động học tập nào trong các tuần qua.', style: TextStyle(color: Colors.grey)),
+                    child: Text('Chưa có hoạt động học tập nào trong các tuần qua.', style: TextStyle(color: Color(0xFF0369A1), fontWeight: FontWeight.bold)),
                   ),
                 )
               : ListView.builder(
@@ -357,49 +445,47 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                     final week = overview.weeklyProgress[index];
                     final startFormatted = '${week.weekStart.day}/${week.weekStart.month}';
                     final endFormatted = '${week.weekEnd.day}/${week.weekEnd.month}';
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                      color: Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
-                              child: const Icon(Icons.date_range, color: Colors.blueAccent),
+                    return GlassCard(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      borderRadius: BorderRadius.circular(24),
+                      padding: const EdgeInsets.all(16),
+                      fillColor: Colors.white.withOpacity(0.4),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: const BoxDecoration(color: Color(0xFFE0F2FE), shape: BoxShape.circle),
+                            child: const Icon(Icons.date_range_rounded, color: Color(0xFF0284C7)),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tuần ($startFormatted - $endFormatted)',
+                                  style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Đã học: ${week.completedLessons} bài | ${formatDuration(week.timeSpentSeconds)}',
+                                  style: const TextStyle(color: Color(0xFF0369A1), fontSize: 13, fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Tuần ($startFormatted - $endFormatted)',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Đã học: ${week.completedLessons} bài | Thời gian: ${formatDuration(week.timeSpentSeconds)}',
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(color: const Color(0xFFFFEDD5), borderRadius: BorderRadius.circular(12)),
+                            child: Text(
+                              '${week.activeChildrenCount} Bé',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFFC2410C), fontWeight: FontWeight.w900, fontFamily: 'FredokaOne'),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
-                              child: Text(
-                                '${week.activeChildrenCount} Bé hoạt động',
-                                style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -410,15 +496,10 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: color.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
+      borderRadius: BorderRadius.circular(24),
+      fillColor: Colors.white.withOpacity(0.4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -429,7 +510,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF0369A1), fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -438,7 +519,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
           ),
           Text(
             value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+            style: const TextStyle(fontFamily: 'FredokaOne', fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -451,88 +532,113 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
   Widget _buildChildrenTab(BuildContext context) {
     final childProvider = context.watch<ChildProvider>();
 
-    return Column(
-      children: [
+    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight + 72.0;
+
+    return Padding(
+      padding: EdgeInsets.only(top: topPadding),
+      child: Column(
+        children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreateProfileScreen()),
-                );
-              },
-              icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('THÊM BÉ MỚI', style: TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
+          child: GlassButton(
+            borderRadius: 20,
+            baseColor: const Color(0xFF3B82F6).withOpacity(0.8),
+            highlightColor: const Color(0xFF2563EB).withOpacity(0.9),
+            height: 52,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateProfileScreen()),
+              );
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'THÊM BÉ MỚI',
+                  style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Colors.white, fontSize: 14),
+                ),
+              ],
             ),
           ),
         ),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
             itemCount: childProvider.children.length,
             itemBuilder: (context, index) {
               final child = childProvider.children[index];
-              return Card(
+              return GlassCard(
                 margin: const EdgeInsets.only(bottom: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                elevation: 0,
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
+                borderRadius: BorderRadius.circular(24),
+                fillColor: Colors.white.withOpacity(0.4),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black12, blurRadius: 6),
+                        ],
+                      ),
+                      child: CircleAvatar(
                         radius: 36,
-                        backgroundColor: Colors.blue.shade50,
+                        backgroundColor: const Color(0xFFEFF6FF),
                         backgroundImage: child.avatarUrl != null ? CachedNetworkImageProvider(child.avatarUrl!) : null,
-                        child: child.avatarUrl == null ? const Icon(Icons.face, size: 36) : null,
+                        child: child.avatarUrl == null ? const Icon(Icons.face_rounded, size: 36, color: Color(0xFF1E3A8A)) : null,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              child.name,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
-                            ),
-                            const SizedBox(height: 4),
-                            Text('${child.age} tuổi', style: TextStyle(color: Colors.grey.shade600)),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 4,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('${child.totalStars} Sao'),
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.local_fire_department, color: Colors.redAccent, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text('${child.currentStreakDays} Ngày'),
-                                  ],
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            child.name,
+                            style: const TextStyle(fontFamily: 'FredokaOne', fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${child.age} tuổi',
+                            style: const TextStyle(color: Color(0xFF0369A1), fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 4,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${child.totalStars} Sao',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.local_fire_department_rounded, color: Colors.redAccent, size: 18),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${child.currentStreakDays} Ngày',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                        ],
                       ),
+                    ),
                       Column(
                         children: [
                           IconButton(
@@ -554,14 +660,14 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                       )
                     ],
                   ),
-                ),
-              );
-            },
+                );
+              },
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   void _showCreateChildDialog(BuildContext context) {
     final nameController = TextEditingController();
@@ -865,100 +971,109 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
 
   // --- TAB 3: LEADERBOARD & COMPARISONS ---
   Widget _buildComparisonTab(BuildContext context, ParentDashboardOverviewResponse? overview) {
-    if (overview == null) return const Center(child: Text('Không có dữ liệu xếp hạng.'));
+    if (overview == null) return const Center(child: Text('Không có dữ liệu xếp hạng.', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))));
     
     if (overview.comparisons.isEmpty) {
-      return const Center(child: Text('Chưa có thông tin so sánh các bé.', style: TextStyle(color: Colors.grey)));
+      return const Center(child: Text('Chưa có thông tin so sánh các bé.', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))));
     }
 
     final formatDuration = (int totalSecs) {
+      if (totalSecs < 60) return '$totalSecs giây';
       final mins = totalSecs ~/ 60;
-      return '$mins phút';
+      if (mins < 60) return '$mins phút';
+      final hrs = mins ~/ 60;
+      final remMins = mins % 60;
+      return '$hrs giờ $remMins phút';
     };
 
+    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight + 72.0 + 16.0;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(16, topPadding, 16, 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+              Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 28),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Bảng thành tích học tập các bé',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                  style: TextStyle(fontFamily: 'FredokaOne', fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A)),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32),
-              child: Table(
-                columnWidths: const {
-                  0: FlexColumnWidth(1.2), // Rank
-                  1: FlexColumnWidth(3),   // Name
-                  2: FlexColumnWidth(2),   // Lessons Completed
-                  3: FlexColumnWidth(1.8), // Stars
-                  4: FlexColumnWidth(2),   // Time Spent
-                },
-                border: TableBorder(
-                  horizontalInside: BorderSide(color: Colors.grey.shade200, width: 1),
-                ),
-                children: [
-                  // Header
-                  TableRow(
-                    decoration: BoxDecoration(color: Colors.blue.shade50),
-                    children: const [
-                      Padding(padding: EdgeInsets.all(12), child: Text('Hạng', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                      Padding(padding: EdgeInsets.all(12), child: Text('Tên Bé', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                      Padding(padding: EdgeInsets.all(12), child: Text('Đã học', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                      Padding(padding: EdgeInsets.all(12), child: Text('Sao ⭐', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                      Padding(padding: EdgeInsets.all(12), child: Text('Thời gian', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E)))),
-                    ],
+          GlassCard(
+            padding: const EdgeInsets.all(8),
+            borderRadius: BorderRadius.circular(24),
+            fillColor: Colors.white.withOpacity(0.4),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 48),
+                child: Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(1.2), // Rank
+                    1: FlexColumnWidth(3),   // Name
+                    2: FlexColumnWidth(2),   // Lessons Completed
+                    3: FlexColumnWidth(1.8), // Stars
+                    4: FlexColumnWidth(2.2), // Time Spent
+                  },
+                  border: TableBorder(
+                    horizontalInside: BorderSide(color: const Color(0xFF1E3A8A).withOpacity(0.1), width: 1),
                   ),
-                  // Body
-                  ...overview.comparisons.map((c) {
-                    final isTop1 = c.rank == 1;
-                    return TableRow(
-                      decoration: const BoxDecoration(color: Colors.white),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              if (isTop1)
-                                const Icon(Icons.workspace_premium, color: Colors.amber, size: 18)
-                              else
-                                Text('${c.rank}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text(c.childName, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text('${c.completedLessons} bài'),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text('${c.totalStars}'),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text(formatDuration(c.timeSpentSeconds)),
-                        ),
+                  children: [
+                    // Header
+                    TableRow(
+                      decoration: BoxDecoration(color: const Color(0xFFEFF6FF).withOpacity(0.6)),
+                      children: const [
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Hạng', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Tên Bé', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Đã học', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Sao ⭐', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Thời gian', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
                       ],
-                    );
-                  }),
-                ],
+                    ),
+                    // Body
+                    ...overview.comparisons.map((c) {
+                      final isTop1 = c.rank == 1;
+                      return TableRow(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                            child: Row(
+                              children: [
+                                if (isTop1)
+                                  const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 20)
+                                else
+                                  Text('${c.rank}', style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                            child: Text(c.childName, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                            child: Text('${c.completedLessons} bài', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                            child: Text('${c.totalStars}', style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                            child: Text(formatDuration(c.timeSpentSeconds), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
               ),
             ),
           ),

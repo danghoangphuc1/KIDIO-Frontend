@@ -39,6 +39,28 @@ class QuestScreen extends StatefulWidget {
 }
 
 class _QuestScreenState extends State<QuestScreen> {
+  int _pronCount = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload pronCount from Hive each time this tab becomes visible.
+    // This ensures Quest 2 shows the latest value without needing a full rebuild.
+    _reloadPronCount();
+  }
+
+  void _reloadPronCount() {
+    try {
+      final childId = context.read<ChildProvider>().selectedChild?.id ?? 'default';
+      final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+      final box = Hive.box('kidio_cache');
+      final count = box.get('daily_pron_count_${childId}_$todayStr', defaultValue: 0) as int;
+      if (mounted && count != _pronCount) {
+        setState(() => _pronCount = count);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _claimReward(Quest quest) async {
     if (!quest.isDone || quest.isClaimed) return;
     
@@ -53,7 +75,7 @@ class _QuestScreenState extends State<QuestScreen> {
     // Save claim status locally
     await box.put('quest_${quest.id}_claimed_${childId}_$todayStr', true);
 
-    // Update child's stars in Provider
+    // Update child's stars in Provider immediately for responsive UI
     final updatedChild = Child(
       id: child.id,
       name: child.name,
@@ -64,7 +86,13 @@ class _QuestScreenState extends State<QuestScreen> {
       lastLessonAt: child.lastLessonAt,
     );
     childProvider.selectChild(updatedChild);
-    
+
+    // Bug #3 fix: Reload the selected child from server so ChildSelectionScreen
+    // star badges stay in sync after claiming the reward.
+    // Use refreshSelectedChild() instead of loadChildren() to avoid a full list
+    // re-fetch that might temporarily show stale star values.
+    childProvider.refreshSelectedChild();
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -104,7 +132,8 @@ class _QuestScreenState extends State<QuestScreen> {
 
     // 2. Daily pronunciations count in Hive
     final box = Hive.box('kidio_cache');
-    final pronCount = box.get('daily_pron_count_${childId}_$todayStr', defaultValue: 0) as int;
+    // Use local state for pronCount so Quest 2 updates without switching tabs.
+    final pronCount = _pronCount;
 
     // 3. Stars earned today
     final starsToday = progressProvider.completedLessons.where((p) {

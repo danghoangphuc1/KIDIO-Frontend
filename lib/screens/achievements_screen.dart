@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/progress_provider.dart';
 import '../providers/child_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/glassmorphic_widgets.dart';
 import 'lesson_detail_screen.dart';
 
@@ -213,15 +215,64 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF102D54)),
                 onPressed: () => Navigator.pop(context),
               ),
-              title: const Text(
-                '🏅 Thành Tích Của Bé',
-                style: TextStyle(
-                  fontFamily: 'FredokaOne',
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF102D54),
-                ),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Thành tích của con',
+                    style: TextStyle(
+                      fontFamily: 'FredokaOne',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF102D54),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (context) => _buildBadgeGuideSheet(context),
+                      );
+                    },
+                    child: const Icon(
+                      Icons.help_outline_rounded,
+                      color: Colors.blueAccent,
+                      size: 24,
+                    ),
+                  ),
+                ],
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.power_settings_new_rounded, color: Colors.redAccent),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        title: const Text('Đăng xuất?', style: TextStyle(fontWeight: FontWeight.w900)),
+                        content: const Text('Bạn có muốn thoát tài khoản không?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('KHÔNG')),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              context.read<ProgressProvider>().clearProgress();
+                              context.read<ChildProvider>().deselectChild();
+                              context.read<AuthProvider>().logout();
+                            },
+                            child: const Text('CÓ', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
       body: PlayfulBackground(
         backgroundColors: const [
@@ -581,12 +632,10 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                                   context,
                                   MaterialPageRoute(builder: (context) => LessonDetailScreen(lessonId: progress.lessonId)),
                                 );
-                                if (context.mounted) {
-                                  final childId = context.read<ChildProvider>().selectedChild?.id;
-                                  if (childId != null) {
-                                    progressProvider.loadChildProgress(childId);
-                                  }
-                                }
+                                // NOTE: Do NOT call loadChildProgress here.
+                                // submitProgress() inside LessonDetailScreen already calls
+                                // loadChildProgress() and awaits its completion before returning.
+                                // Calling it again would clear completedLessons=[] and cause a flash.
                               },
                             ),
                           ),
@@ -598,6 +647,161 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBadgeGuideSheet(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 6,
+              decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10)),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.emoji_events_rounded, color: Colors.orange, size: 28),
+                SizedBox(width: 8),
+                Text(
+                  'Cách Nhận Huy Hiệu',
+                  style: TextStyle(
+                    fontFamily: 'FredokaOne',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Để sưu tập huy hiệu siêu ngầu, con cần chăm chỉ học bài nhé! Học càng nhiều bài học mới, huy hiệu càng hiếm:',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.blueGrey,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildBadgeRuleItem(
+                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png',
+                      'Tân binh dũng cảm',
+                      'Hoàn thành 1 bài học',
+                    ),
+                    _buildBadgeRuleItem(
+                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png',
+                      'Chiến binh thông thái',
+                      'Hoàn thành 2 bài học',
+                    ),
+                    _buildBadgeRuleItem(
+                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png',
+                      'Ngôi sao chớp nhoáng',
+                      'Hoàn thành 3 bài học',
+                    ),
+                    _buildBadgeRuleItem(
+                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png',
+                      'Sắc màu rực rỡ',
+                      'Hoàn thành 4 bài học',
+                    ),
+                    _buildBadgeRuleItem(
+                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png',
+                      'Trái tim kiên cường',
+                      'Hoàn thành 5 bài học',
+                    ),
+                    _buildBadgeRuleItem(
+                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png',
+                      'Bậc thầy kiên nhẫn',
+                      'Hoàn thành 6 bài học',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Đã Rõ Cách Nhận!',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadgeRuleItem(String imgUrl, String title, String range) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+      ),
+      child: Row(
+        children: [
+          CachedNetworkImage(
+            imageUrl: imgUrl,
+            width: 40,
+            height: 40,
+            errorWidget: (context, url, error) => const Icon(Icons.stars, color: Colors.orange),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'FredokaOne',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFFD97706),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  range,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.blueGrey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

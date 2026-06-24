@@ -180,6 +180,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         childId: childId,
         lessonId: widget.lessonId,
         scorePercent: 100,
+
         timeSpentSeconds: totalTimeSpent,
       );
 

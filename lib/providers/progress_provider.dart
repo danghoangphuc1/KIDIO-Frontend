@@ -4,6 +4,19 @@ import '../models/kidio_models.dart';
 import '../repositories/progress_repository.dart';
 import '../repositories/achievement_repository.dart';
 
+// Ngưỡng điểm — phải khớp với ProgressService.cs phía BE
+const int _kPassThreshold     = 60; // >= 60% là hoàn thành (pass)
+const int _kTwoStarThreshold  = 70; // >= 70% đạt 2 sao
+const int _kThreeStarThreshold = 90; // >= 90% đạt 3 sao
+
+/// Tính số sao dựa trên điểm — khớp với BE CalculateStars()
+int _calcStars(int score) {
+  if (score >= _kThreeStarThreshold) return 3;
+  if (score >= _kTwoStarThreshold)   return 2;
+  if (score >= _kPassThreshold)      return 1;
+  return 0;
+}
+
 class ProgressProvider extends ChangeNotifier {
   final ProgressRepository _progressRepository;
   final AchievementRepository _achievementRepository;
@@ -162,8 +175,8 @@ class ProgressProvider extends ChangeNotifier {
         id: 'local_${lessonId}_${DateTime.now().millisecondsSinceEpoch}',
         childId: childId,
         lessonId: lessonId,
-        isCompleted: scorePercent >= 60,
-        starsEarned: scorePercent >= 90 ? 3 : (scorePercent >= 70 ? 2 : (scorePercent >= 60 ? 1 : 0)),
+        isCompleted: scorePercent >= _kPassThreshold,
+        starsEarned: _calcStars(scorePercent),
         scorePercent: scorePercent,
         timeSpentSeconds: timeSpentSeconds,
         completedAt: DateTime.now(),
@@ -234,8 +247,8 @@ class ProgressProvider extends ChangeNotifier {
       final lessonId = item['lessonId'];
       final scorePercent = item['scorePercent'];
       final timeSpentSeconds = item['timeSpentSeconds'];
-      final isCompleted = scorePercent >= 60;
-      final starsEarned = scorePercent >= 90 ? 3 : (scorePercent >= 70 ? 2 : (scorePercent >= 60 ? 1 : 0));
+      final isCompleted = scorePercent >= _kPassThreshold;
+      final starsEarned = _calcStars(scorePercent);
       final completedAt = DateTime.parse(item['completedAt']);
 
       final alreadyCompleted = _completedLessons.any((l) => l.lessonId == lessonId);
@@ -359,8 +372,8 @@ class ProgressProvider extends ChangeNotifier {
           id: 'local_${lessonId}_${completedAt.millisecondsSinceEpoch}',
           childId: childId,
           lessonId: lessonId,
-          isCompleted: scorePercent >= 60,
-          starsEarned: scorePercent >= 90 ? 3 : (scorePercent >= 70 ? 2 : (scorePercent >= 60 ? 1 : 0)),
+          isCompleted: scorePercent >= _kPassThreshold,
+          starsEarned: _calcStars(scorePercent),
           scorePercent: scorePercent,
           timeSpentSeconds: timeSpentSeconds,
           completedAt: completedAt,
