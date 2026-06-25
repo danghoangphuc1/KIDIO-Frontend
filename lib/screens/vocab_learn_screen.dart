@@ -194,8 +194,9 @@ class _VocabLearnScreenState extends State<VocabLearnScreen>
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                       ).animate().fade(delay: 300.ms).slideY(begin: 0.2),
                       const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
                         children: ['🎈', '🎉', '🏆', '🎉', '🎈']
                             .asMap()
                             .entries

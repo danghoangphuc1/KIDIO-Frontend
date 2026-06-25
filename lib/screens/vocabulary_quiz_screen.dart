@@ -372,7 +372,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                 flex: 4,
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],

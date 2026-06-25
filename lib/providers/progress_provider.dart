@@ -115,8 +115,12 @@ class ProgressProvider extends ChangeNotifier {
       _loadOfflineFallback(childId);
     } finally {
       // 3. Merge remaining offline unsynced progress entries to ensure correct UI feedback
-      _mergeOfflineProgress(childId);
-      _mergeLocalCompletedLessons(childId);
+      try {
+        _mergeOfflineProgress(childId);
+        _mergeLocalCompletedLessons(childId);
+      } catch (e) {
+        debugPrint('Error merging offline progress: $e');
+      }
       _isLoading = false;
       notifyListeners();
     }

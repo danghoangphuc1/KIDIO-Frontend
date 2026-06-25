@@ -38,7 +38,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
 
   Future<void> _reloadData() async {
     context.read<DashboardProvider>().loadOverview();
-    context.read<ChildProvider>().loadChildren();
+    await context.read<ChildProvider>().loadChildren();
+    
+    if (!mounted) return;
     
     final children = context.read<ChildProvider>().children;
     if (children.isNotEmpty) {

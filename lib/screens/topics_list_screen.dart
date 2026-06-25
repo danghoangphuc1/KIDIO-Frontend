@@ -75,7 +75,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       _buildTopicsGrid(),
-      const AchievementsScreen(),
+      const AchievementsScreen(isTab: true),
     ];
 
     return Scaffold(

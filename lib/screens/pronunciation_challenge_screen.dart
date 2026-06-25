@@ -317,13 +317,18 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                     icon: const Icon(Icons.close_rounded, color: Color(0xFF102D54), size: 28),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Text(
-                    'AI Pronunciation',
-                    style: TextStyle(
-                      fontFamily: 'FredokaOne',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF102D54),
+                  Flexible(
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'AI Pronunciation',
+                        style: TextStyle(
+                          fontFamily: 'FredokaOne',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF102D54),
+                        ),
+                      ),
                     ),
                   ),
                   Container(
@@ -605,68 +610,80 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Speak again button
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _currentScore = null;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFFF2E93), width: 2),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.refresh_rounded, color: Color(0xFFFF2E93), size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              'SPEAK AGAIN',
-                              style: TextStyle(
-                                fontFamily: 'FredokaOne',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF2E93),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _currentScore = null;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFFF2E93), width: 2),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.refresh_rounded, color: Color(0xFFFF2E93), size: 16),
+                              SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'SPEAK AGAIN',
+                                  style: TextStyle(
+                                    fontFamily: 'FredokaOne',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFFFF2E93),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
 
                     // Next word button
-                    GestureDetector(
-                      onTap: _nextWord,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF2E93),
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFF2E93).withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          children: [
-                            Text(
-                              'NEXT WORD',
-                              style: TextStyle(
-                                fontFamily: 'FredokaOne',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _nextWord,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF2E93),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF2E93).withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
                               ),
-                            ),
-                            SizedBox(width: 6),
-                            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-                          ],
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Flexible(
+                                child: Text(
+                                  'NEXT WORD',
+                                  style: TextStyle(
+                                    fontFamily: 'FredokaOne',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                            ],
+                          ),
                         ),
                       ),
                     ),
