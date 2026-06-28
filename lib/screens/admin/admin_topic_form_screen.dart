@@ -165,14 +165,17 @@ class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _iconUrlCtrl,
-                decoration: InputDecoration(
-                  labelText: 'URL Icon/Hình ảnh',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
+              _buildUrlFieldWithDropdown(
+                ctrl: _iconUrlCtrl,
+                label: 'URL Icon/Hình ảnh',
+                sampleUrls: [
+                  {'name': 'Động vật (Animals)', 'url': 'https://cdn-icons-png.flaticon.com/512/3069/3069172.png'},
+                  {'name': 'Gia đình (Family)', 'url': 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'},
+                  {'name': 'Đồ ăn (Food)', 'url': 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png'},
+                  {'name': 'Màu sắc (Colors)', 'url': 'https://cdn-icons-png.flaticon.com/512/2970/2970785.png'},
+                  {'name': 'Trường học (School)', 'url': 'https://cdn-icons-png.flaticon.com/512/167/167707.png'},
+                  {'name': 'Cơ thể (Body)', 'url': 'https://cdn-icons-png.flaticon.com/512/3048/3048122.png'},
+                ],
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -216,6 +219,64 @@ class _AdminTopicFormScreenState extends State<AdminTopicFormScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildUrlFieldWithDropdown({
+    required TextEditingController ctrl,
+    required String label,
+    required List<Map<String, String>> sampleUrls,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextFormField(
+                controller: ctrl,
+                decoration: InputDecoration(
+                  labelText: label,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 1,
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Mẫu',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                isExpanded: true,
+                items: [
+                  ...sampleUrls.map((sample) => DropdownMenuItem(
+                        value: sample['url'],
+                        child: Text(sample['name']!, overflow: TextOverflow.ellipsis),
+                      )),
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('Trống (Clear)'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    ctrl.text = val;
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

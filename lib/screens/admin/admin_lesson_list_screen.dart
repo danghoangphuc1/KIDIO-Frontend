@@ -7,9 +7,10 @@ import 'admin_vocabulary_list_screen.dart';
 import '../../utils/snackbar_utils.dart';
 
 class AdminLessonListScreen extends StatefulWidget {
-  final Topic topic;
+  final Topic? topic;
+  final bool isEmbedded;
 
-  const AdminLessonListScreen({super.key, required this.topic});
+  const AdminLessonListScreen({super.key, this.topic, this.isEmbedded = false});
 
   @override
   State<AdminLessonListScreen> createState() => _AdminLessonListScreenState();
@@ -34,7 +35,14 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
     });
     try {
       final repo = context.read<LessonRepository>();
-      final result = await repo.getLessonsByTopic(widget.topic.id);
+      List<Lesson> result;
+      if (widget.topic != null) {
+        result = await repo.getLessonsByTopic(widget.topic!.id);
+      } else {
+        final pagedResult = await repo.getAllLessons(pageSize: 100);
+        result = pagedResult.items ?? [];
+      }
+      
       setState(() {
         _lessons = result;
         _isLoading = false;
@@ -104,7 +112,7 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminLessonFormScreen(topicId: widget.topic.id, lesson: lesson, nextOrderIndex: nextOrderIndex),
+        builder: (_) => AdminLessonFormScreen(topicId: widget.topic?.id, lesson: lesson, nextOrderIndex: nextOrderIndex),
       ),
     );
     if (result == true) {
@@ -116,23 +124,26 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBFF),
-      appBar: AppBar(
-        title: Text(
-          'Bài học: ${widget.topic.name}',
-          style: const TextStyle(
-            color: Color(0xFF1A237E),
-            fontWeight: FontWeight.w900,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1A237E)),
-      ),
-      floatingActionButton: FloatingActionButton(
+      appBar: widget.isEmbedded
+          ? null
+          : AppBar(
+              title: Text(
+                widget.topic != null ? 'Bài học: ${widget.topic!.name}' : 'Quản lý Bài học',
+                style: const TextStyle(
+                  color: Color(0xFF1A237E),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Color(0xFF1A237E)),
+            ),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToForm(),
         backgroundColor: Colors.blue.shade700,
-        child: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Thêm mới', style: TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.add, color: Colors.white),
       ),
       body: _buildBody(),
     );
@@ -196,99 +207,152 @@ class _AdminLessonListScreenState extends State<AdminLessonListScreen> {
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final lesson = filtered[index];
-        return Card(
+        final bool isPublished = lesson.isPublished;
+        
+        return Container(
           margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: ExpansionTile(
-            shape: const Border(), // Removes top/bottom border when expanded
-            tilePadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            leading: lesson.thumbnailUrl != null && lesson.thumbnailUrl!.isNotEmpty
-                ? Image.network(
-                    lesson.thumbnailUrl!,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.play_circle_filled, size: 48, color: Colors.blueAccent),
-                  )
-                : const Icon(Icons.play_circle_filled, size: 48, color: Colors.blueAccent),
-            title: Text(
-              lesson.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text(
-                  '${lesson.lessonType ?? 'General'} | Order: ${lesson.orderIndex}',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: lesson.isPublished ? Colors.green.shade100 : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminVocabularyListScreen(lesson: lesson),
                   ),
-                  child: Text(
-                    lesson.isPublished ? 'Published' : 'Draft',
-                    style: TextStyle(
-                      color: lesson.isPublished ? Colors.green.shade800 : Colors.grey.shade700,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            children: [
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                child: OverflowBar(
-                  alignment: MainAxisAlignment.end,
-                  spacing: 8,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    TextButton.icon(
-                      icon: const Icon(Icons.spellcheck_rounded, color: Colors.purple, size: 20),
-                      label: const Text('Từ vựng', style: TextStyle(color: Colors.purple)),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AdminVocabularyListScreen(lesson: lesson),
-                          ),
-                        );
-                      },
-                    ),
-                    TextButton.icon(
-                      icon: Icon(
-                        lesson.isPublished ? Icons.visibility_off : Icons.visibility,
-                        color: lesson.isPublished ? Colors.grey : Colors.green,
-                        size: 20,
+                    // Icon Box
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      label: Text(lesson.isPublished ? 'Ẩn' : 'Hiện', style: TextStyle(color: lesson.isPublished ? Colors.grey : Colors.green)),
-                      onPressed: () => _togglePublish(lesson),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: lesson.thumbnailUrl != null && lesson.thumbnailUrl!.isNotEmpty
+                            ? Image.network(
+                                lesson.thumbnailUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Center(
+                                  child: Text(_getEmojiForLesson(lesson.lessonType, lesson.title), style: const TextStyle(fontSize: 24)),
+                                ),
+                              )
+                            : Center(
+                                child: Text(_getEmojiForLesson(lesson.lessonType, lesson.title), style: const TextStyle(fontSize: 24)),
+                              ),
+                      ),
                     ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
-                      label: const Text('Sửa', style: TextStyle(color: Colors.orange)),
-                      onPressed: () => _navigateToForm(lesson),
+                    const SizedBox(width: 16),
+                    // Title and Subtitle
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            lesson.title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${lesson.lessonType ?? 'General'} | Order: ${lesson.orderIndex}',
+                            style: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                      label: const Text('Xoá', style: TextStyle(color: Colors.red)),
-                      onPressed: () => _deleteLesson(lesson),
+                    // Trailing Actions (Badge and Icons)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isPublished ? const Color(0xFF10B981).withValues(alpha: 0.1) : const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            isPublished ? 'Published' : 'Draft',
+                            style: TextStyle(
+                              color: isPublished ? const Color(0xFF059669) : const Color(0xFFD97706),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () => _togglePublish(lesson),
+                              child: Icon(isPublished ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: const Color(0xFF9CA3AF), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () => _navigateToForm(lesson),
+                              child: const Icon(Icons.edit_rounded, color: Color(0xFF9CA3AF), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () => _deleteLesson(lesson),
+                              child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         );
       },
     );
+  }
+
+  String _getEmojiForLesson(String? type, String title) {
+    final lowerTitle = title.toLowerCase();
+    if (lowerTitle.contains('animal') || lowerTitle.contains('pet')) return '🦁';
+    if (lowerTitle.contains('food') || lowerTitle.contains('drink') || lowerTitle.contains('fruit')) return '🍎';
+    if (lowerTitle.contains('family')) return '👨‍👩‍👧‍👦';
+    if (lowerTitle.contains('color')) return '🎨';
+    if (lowerTitle.contains('number')) return '🔢';
+    
+    if (type == null) return '📖';
+    final lower = type.toLowerCase();
+    if (lower.contains('video')) return '🎥';
+    if (lower.contains('audio') || lower.contains('pronunciation')) return '🎙️';
+    if (lower.contains('quiz') || lower.contains('game')) return '🎮';
+    if (lower.contains('story')) return '📘';
+    return '📖';
   }
 }

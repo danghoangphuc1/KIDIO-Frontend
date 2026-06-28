@@ -203,6 +203,7 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
           setState(() {
             _selectedVocabId = null;
             _hasAnswered = false;
+            round.options.shuffle();
           });
         }
       });

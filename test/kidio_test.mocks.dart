@@ -1167,4 +1167,41 @@ class MockCacheService extends _i1.Mock implements _i12.CacheService {
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
+
+  @override
+  _i9.Future<void> saveLessonCompleted(
+    String? childId,
+    String? lessonId,
+    bool? isCompleted, {
+    DateTime? completedAt,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #saveLessonCompleted,
+          [
+            childId,
+            lessonId,
+            isCompleted,
+          ],
+          {#completedAt: completedAt},
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+
+  @override
+  bool isLessonCompleted(
+    String? childId,
+    String? lessonId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isLessonCompleted,
+          [
+            childId,
+            lessonId,
+          ],
+        ),
+        returnValue: false,
+      ) as bool);
 }

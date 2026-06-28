@@ -50,7 +50,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
     final totalStars = child?.totalStars ?? 0;
     final streak = child?.currentStreakDays ?? 0;
-    final completedLessonsCount = progressProvider.completedLessons.length;
+    final completedLessonsCount = progressProvider.summary?.totalLessonsCompleted ?? progressProvider.completedLessons.length;
 
     // Define badges and check their unlocked state
     final List<BadgeItem> badges = progressProvider.activeDefinitions.isNotEmpty

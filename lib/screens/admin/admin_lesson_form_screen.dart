@@ -3,13 +3,14 @@ import '../../utils/snackbar_utils.dart';
 import 'package:provider/provider.dart';
 import '../../models/kidio_models.dart';
 import '../../repositories/lesson_repository.dart';
+import '../../repositories/topic_repository.dart';
 
 class AdminLessonFormScreen extends StatefulWidget {
-  final String topicId;
+  final String? topicId;
   final Lesson? lesson; // Null for create mode
   final int? nextOrderIndex;
 
-  const AdminLessonFormScreen({super.key, required this.topicId, this.lesson, this.nextOrderIndex});
+  const AdminLessonFormScreen({super.key, this.topicId, this.lesson, this.nextOrderIndex});
 
   @override
   State<AdminLessonFormScreen> createState() => _AdminLessonFormScreenState();
@@ -31,10 +32,13 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
   late TextEditingController _contentJsonCtrl;
 
   bool _isFetching = false;
+  String? _selectedTopicId;
+  List<Topic> _topics = [];
 
   @override
   void initState() {
     super.initState();
+    _selectedTopicId = widget.topicId;
     final l = widget.lesson;
     _titleCtrl = TextEditingController(text: l?.title ?? '');
     _descCtrl = TextEditingController(text: l?.description ?? '');
@@ -57,8 +61,23 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
     
     _contentJsonCtrl = TextEditingController(text: l?.contentJson ?? '');
 
+    _fetchTopics();
+
     if (l != null) {
       _fetchFullLesson(l.id);
+    }
+  }
+
+  Future<void> _fetchTopics() async {
+    try {
+      final repo = context.read<TopicRepository>();
+      final topicsResult = await repo.fetchTopics(pageSize: 1000);
+      if (!mounted) return;
+      setState(() {
+        _topics = topicsResult.items;
+      });
+    } catch (e) {
+      // Ignore error
     }
   }
 
@@ -104,6 +123,10 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedTopicId == null) {
+      CustomSnackBar.showError(context, 'Vui lòng chọn một Chủ đề (Topic)', prefix: '');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -119,7 +142,7 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
         // Create
         await repo.createLesson(
           title: _titleCtrl.text.trim(),
-          topicId: widget.topicId,
+          topicId: _selectedTopicId!,
           description: _descCtrl.text.trim(),
           lessonType: _typeCtrl.text.trim(),
           difficulty: _diffCtrl.text.trim(),
@@ -186,6 +209,25 @@ class _AdminLessonFormScreenState extends State<AdminLessonFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.lesson == null && widget.topicId == null) ...[
+                DropdownButtonFormField<String>(
+                  value: _selectedTopicId,
+                  decoration: const InputDecoration(
+                    labelText: 'Chủ đề (*)',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  items: _topics.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedTopicId = val;
+                    });
+                  },
+                  validator: (val) => val == null ? 'Vui lòng chọn Chủ đề' : null,
+                ),
+                const SizedBox(height: 16),
+              ],
               _buildTextField(_titleCtrl, 'Tên bài học (*)', true),
               const SizedBox(height: 16),
               _buildTextField(_descCtrl, 'Mô tả', false, maxLines: 3),

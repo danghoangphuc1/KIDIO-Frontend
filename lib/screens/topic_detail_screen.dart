@@ -670,15 +670,21 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                                 ? const Color(0xFF047857)
                                                 : const Color(0xFF1D4ED8)),
                                         onPressed: () async {
-                                          await Navigator.push(
+                                          final res = await Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) => LessonDetailScreen(lessonId: lesson.id),
                                             ),
                                           );
                                           if (mounted) {
-                                             setState(() {});
-                                           }
+                                            if (res == true) {
+                                              final childId = context.read<ChildProvider>().selectedChild?.id;
+                                              if (childId != null) {
+                                                context.read<ProgressProvider>().loadChildProgress(childId);
+                                              }
+                                            }
+                                            setState(() {});
+                                          }
                                         },
                                       )
                                     else

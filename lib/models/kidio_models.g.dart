@@ -395,3 +395,124 @@ Map<String, dynamic> _$AchievementDefinitionToJson(
       'orderIndex': instance.orderIndex,
       'isActive': instance.isActive,
     };
+
+AdminDashboardOverviewResponse _$AdminDashboardOverviewResponseFromJson(
+        Map<String, dynamic> json) =>
+    AdminDashboardOverviewResponse(
+      totalParents: (json['totalParents'] as num).toInt(),
+      totalChildren: (json['totalChildren'] as num).toInt(),
+      totalTopics: (json['totalTopics'] as num).toInt(),
+      totalLessons: (json['totalLessons'] as num).toInt(),
+      totalPublishedLessons: (json['totalPublishedLessons'] as num).toInt(),
+      totalUnpublishedLessons: (json['totalUnpublishedLessons'] as num).toInt(),
+      totalLessonCompletions: (json['totalLessonCompletions'] as num).toInt(),
+      totalVocabularies: (json['totalVocabularies'] as num).toInt(),
+      totalAchievementsEarned: (json['totalAchievementsEarned'] as num).toInt(),
+      generatedAt: DateTime.parse(json['generatedAt'] as String),
+    );
+
+Map<String, dynamic> _$AdminDashboardOverviewResponseToJson(
+        AdminDashboardOverviewResponse instance) =>
+    <String, dynamic>{
+      'totalParents': instance.totalParents,
+      'totalChildren': instance.totalChildren,
+      'totalTopics': instance.totalTopics,
+      'totalLessons': instance.totalLessons,
+      'totalPublishedLessons': instance.totalPublishedLessons,
+      'totalUnpublishedLessons': instance.totalUnpublishedLessons,
+      'totalLessonCompletions': instance.totalLessonCompletions,
+      'totalVocabularies': instance.totalVocabularies,
+      'totalAchievementsEarned': instance.totalAchievementsEarned,
+      'generatedAt': instance.generatedAt.toIso8601String(),
+    };
+
+AdminRecentUserResponse _$AdminRecentUserResponseFromJson(
+        Map<String, dynamic> json) =>
+    AdminRecentUserResponse(
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
+      email: json['email'] as String,
+      role: json['role'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+
+Map<String, dynamic> _$AdminRecentUserResponseToJson(
+        AdminRecentUserResponse instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'displayName': instance.displayName,
+      'email': instance.email,
+      'role': instance.role,
+      'createdAt': instance.createdAt.toIso8601String(),
+    };
+
+AdminTopLessonResponse _$AdminTopLessonResponseFromJson(
+        Map<String, dynamic> json) =>
+    AdminTopLessonResponse(
+      lessonId: json['lessonId'] as String,
+      title: json['title'] as String,
+      topicName: json['topicName'] as String,
+      completionCount: (json['completionCount'] as num).toInt(),
+      avgScorePercent: (json['avgScorePercent'] as num).toDouble(),
+    );
+
+Map<String, dynamic> _$AdminTopLessonResponseToJson(
+        AdminTopLessonResponse instance) =>
+    <String, dynamic>{
+      'lessonId': instance.lessonId,
+      'title': instance.title,
+      'topicName': instance.topicName,
+      'completionCount': instance.completionCount,
+      'avgScorePercent': instance.avgScorePercent,
+    };
+
+AdminRecentActivityResponse _$AdminRecentActivityResponseFromJson(
+        Map<String, dynamic> json) =>
+    AdminRecentActivityResponse(
+      childId: json['childId'] as String,
+      childName: json['childName'] as String,
+      activityType: json['activityType'] as String,
+      description: json['description'] as String,
+      metaValue: json['metaValue'] as String?,
+      timestamp: DateTime.parse(json['timestamp'] as String),
+    );
+
+Map<String, dynamic> _$AdminRecentActivityResponseToJson(
+        AdminRecentActivityResponse instance) =>
+    <String, dynamic>{
+      'childId': instance.childId,
+      'childName': instance.childName,
+      'activityType': instance.activityType,
+      'description': instance.description,
+      'metaValue': instance.metaValue,
+      'timestamp': instance.timestamp.toIso8601String(),
+    };
+
+AdminDashboardDetailResponse _$AdminDashboardDetailResponseFromJson(
+        Map<String, dynamic> json) =>
+    AdminDashboardDetailResponse(
+      overview: AdminDashboardOverviewResponse.fromJson(
+          json['overview'] as Map<String, dynamic>),
+      recentUsers: (json['recentUsers'] as List<dynamic>)
+          .map((e) =>
+              AdminRecentUserResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      topLessons: (json['topLessons'] as List<dynamic>)
+          .map(
+              (e) => AdminTopLessonResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      recentActivities: (json['recentActivities'] as List<dynamic>)
+          .map((e) =>
+              AdminRecentActivityResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$AdminDashboardDetailResponseToJson(
+        AdminDashboardDetailResponse instance) =>
+    <String, dynamic>{
+      'overview': instance.overview.toJson(),
+      'recentUsers': instance.recentUsers.map((e) => e.toJson()).toList(),
+      'topLessons': instance.topLessons.map((e) => e.toJson()).toList(),
+      'recentActivities':
+          instance.recentActivities.map((e) => e.toJson()).toList(),
+    };

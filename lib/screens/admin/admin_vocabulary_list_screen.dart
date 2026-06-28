@@ -7,8 +7,9 @@ import 'admin_vocabulary_form_screen.dart';
 
 class AdminVocabularyListScreen extends StatefulWidget {
   final Lesson? lesson;
+  final bool isEmbedded;
 
-  const AdminVocabularyListScreen({super.key, this.lesson});
+  const AdminVocabularyListScreen({super.key, this.lesson, this.isEmbedded = false});
 
   @override
   State<AdminVocabularyListScreen> createState() => _AdminVocabularyListScreenState();
@@ -100,24 +101,27 @@ class _AdminVocabularyListScreenState extends State<AdminVocabularyListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FBFF),
-      appBar: AppBar(
-        title: Text(
-          widget.lesson != null ? 'Từ vựng: ${widget.lesson!.title}' : 'Quản lý Từ vựng',
-          style: const TextStyle(
-            color: Color(0xFF1A237E),
-            fontWeight: FontWeight.w900,
-            fontSize: 18,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1A237E)),
-      ),
-      floatingActionButton: FloatingActionButton(
+      backgroundColor: widget.isEmbedded ? Colors.transparent : const Color(0xFFF8FBFF),
+      appBar: widget.isEmbedded
+          ? null
+          : AppBar(
+              title: Text(
+                widget.lesson != null ? 'Từ vựng: ${widget.lesson!.title}' : 'Quản lý Từ vựng',
+                style: const TextStyle(
+                  color: Color(0xFF1A237E),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Color(0xFF1A237E)),
+            ),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToForm(),
         backgroundColor: Colors.purple,
-        child: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Thêm mới', style: TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.add, color: Colors.white),
       ),
       body: _buildBody(),
     );
@@ -182,59 +186,123 @@ class _AdminVocabularyListScreenState extends State<AdminVocabularyListScreen> {
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final vocab = filtered[index];
-        return Card(
+        final String emoji = _getEmojiForVocab(vocab.word);
+        
+        return Container(
           margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty
-                ? Image.network(
-                    vocab.imageUrl!,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.image, size: 48, color: Colors.purple),
-                  )
-                : const Icon(Icons.spellcheck_rounded, size: 48, color: Colors.purple),
-            title: Text(
-              vocab.word,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.purple),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty)
-                  Text(
-                    '/${vocab.phoneticText}/',
-                    style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Icon Box
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: vocab.imageUrl != null && vocab.imageUrl!.isNotEmpty
+                          ? Image.network(
+                              vocab.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                            )
+                          : Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                    ),
                   ),
-                const SizedBox(height: 4),
-                Text(
-                  vocab.meaning,
-                  style: const TextStyle(fontSize: 15),
-                ),
-              ],
-            ),
-            isThreeLine: true,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.orange),
-                  onPressed: () => _navigateToForm(vocab),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _deleteVocabulary(vocab),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  // Word and Meaning
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              vocab.word,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Color(0xFF111827),
+                              ),
+                            ),
+                            if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '/${vocab.phoneticText}/',
+                                style: const TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          vocab.meaning,
+                          style: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Trailing Actions (Icons)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _navigateToForm(vocab),
+                        child: const Icon(Icons.edit_rounded, color: Color(0xFF9CA3AF), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: () => _deleteVocabulary(vocab),
+                        child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  String _getEmojiForVocab(String word) {
+    final lower = word.toLowerCase();
+    if (lower.contains('dog') || lower.contains('cat') || lower.contains('bird') || lower.contains('cow') || lower.contains('pig')) return '🐾';
+    if (lower.contains('apple') || lower.contains('banana') || lower.contains('orange') || lower.contains('fruit') || lower.contains('milk')) return '🍎';
+    if (lower.contains('sun') || lower.contains('moon') || lower.contains('star')) return '⭐';
+    if (lower.contains('red') || lower.contains('blue') || lower.contains('green') || lower.contains('color')) return '🎨';
+    if (lower.contains('one') || lower.contains('two') || lower.contains('three') || lower.contains('four')) return '🔢';
+    if (lower.contains('father') || lower.contains('mother') || lower.contains('brother') || lower.contains('sister') || lower.contains('family')) return '👨‍👩‍👧‍👦';
+    if (lower.contains('car') || lower.contains('bus') || lower.contains('train') || lower.contains('bike')) return '🚗';
+    return '📝';
   }
 }
 

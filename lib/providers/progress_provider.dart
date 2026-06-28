@@ -87,31 +87,51 @@ class ProgressProvider extends ChangeNotifier {
       debugPrint("Error syncing offline progress: $e");
     }
 
-    // 2. Load latest progress from API
+    // 2. Load latest progress from API individually to prevent one failure from breaking all
     try {
-      final results = await Future.wait([
-        _progressRepository.getRecentActivities(childId),
-        _achievementRepository.getByChild(childId),
-        _progressRepository.getChildSummary(childId),
-        _progressRepository.getCompletedLessons(childId),
-        _achievementRepository.getActiveDefinitions(),
-      ]);
-      
-      _recentActivities = results[0] as List<LessonProgress>;
-      _achievements = results[1] as List<Achievement>;
-      _summary = results[2] as ChildProgressSummary;
-      _completedLessons = results[3] as List<LessonProgress>;
-      _activeDefinitions = results[4] as List<AchievementDefinition>;
+      try {
+        _recentActivities = await _progressRepository.getRecentActivities(childId);
+      } catch (e) {
+        debugPrint("Error fetching recent activities: $e");
+      }
 
-      // Cache the loaded data
-      await box.put('cached_recent_activities_$childId', _recentActivities.map((e) => e.toJson()).toList());
-      await box.put('cached_achievements_$childId', _achievements.map((e) => e.toJson()).toList());
-      await box.put('cached_active_definitions_$childId', _activeDefinitions.map((e) => e.toJson()).toList());
-      await box.put('cached_summary_$childId', _summary!.toJson());
-      await box.put('cached_completed_lessons_$childId', _completedLessons.map((e) => e.toJson()).toList());
+      try {
+        _achievements = await _achievementRepository.getByChild(childId);
+      } catch (e) {
+        debugPrint("Error fetching achievements: $e");
+      }
+
+      try {
+        _summary = await _progressRepository.getChildSummary(childId);
+      } catch (e) {
+        debugPrint("Error fetching child summary: $e");
+      }
+
+      try {
+        _completedLessons = await _progressRepository.getCompletedLessons(childId);
+      } catch (e) {
+        debugPrint("Error fetching completed lessons: $e");
+      }
+
+      try {
+        _activeDefinitions = await _achievementRepository.getActiveDefinitions();
+      } catch (e) {
+        debugPrint("Error fetching active definitions: $e");
+      }
+
+      // If summary is still null, it means the API calls failed (offline or BE issue)
+      if (_summary == null) {
+        _loadOfflineFallback(childId);
+      } else {
+        // Cache the loaded data
+        await box.put('cached_recent_activities_$childId', _recentActivities.map((e) => e.toJson()).toList());
+        await box.put('cached_achievements_$childId', _achievements.map((e) => e.toJson()).toList());
+        await box.put('cached_active_definitions_$childId', _activeDefinitions.map((e) => e.toJson()).toList());
+        await box.put('cached_summary_$childId', _summary!.toJson());
+        await box.put('cached_completed_lessons_$childId', _completedLessons.map((e) => e.toJson()).toList());
+      }
     } catch (e) {
       _errorMessage = e.toString();
-      // Fallback to offline cached data
       _loadOfflineFallback(childId);
     } finally {
       // 3. Merge remaining offline unsynced progress entries to ensure correct UI feedback
@@ -331,7 +351,7 @@ class ProgressProvider extends ChangeNotifier {
 
         List<TopicProgressItem> updatedTopicProgresses = List.from(_summary!.topicProgresses);
         if (topicId != null) {
-          final tpIdx = updatedTopicProgresses.indexWhere((tp) => tp.topicId == topicId);
+          final tpIdx = updatedTopicProgresses.indexWhere((tp) => tp.topicId.toLowerCase() == topicId!.toLowerCase());
           if (tpIdx != -1) {
             final currentItem = updatedTopicProgresses[tpIdx];
             final newCompleted = currentItem.completedLessons + completedLessonsIncrement;

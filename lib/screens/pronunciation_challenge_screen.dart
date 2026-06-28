@@ -396,41 +396,44 @@ class _PronunciationChallengeScreenState extends State<PronunciationChallengeScr
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Text(
-                                      'TARGET WORD',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w900,
-                                        color: Color(0xFFEA580C),
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      vocab.word.toUpperCase(),
-                                      style: const TextStyle(
-                                        fontFamily: 'FredokaOne',
-                                        fontSize: 42,
-                                        fontWeight: FontWeight.w900,
-                                        color: Color(0xFFFF7E06),
-                                      ),
-                                    ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
-                                    if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        vocab.phoneticText!,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        'TARGET WORD',
                                         style: TextStyle(
-                                          fontSize: 16,
-                                          fontStyle: FontStyle.italic,
-                                          color: Colors.grey.shade600,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                          color: Color(0xFFEA580C),
+                                          letterSpacing: 1,
                                         ),
                                       ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        vocab.word.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontFamily: 'FredokaOne',
+                                          fontSize: 42,
+                                          fontWeight: FontWeight.w900,
+                                          color: Color(0xFFFF7E06),
+                                        ),
+                                      ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
+                                      if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          vocab.phoneticText!,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontStyle: FontStyle.italic,
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
                                     ],
-                                  ],
+                                  ),
                                 ),
 
                                 // Speaker button top-right

@@ -474,3 +474,113 @@ class AchievementDefinition {
   factory AchievementDefinition.fromJson(Map<String, dynamic> json) => _$AchievementDefinitionFromJson(json);
   Map<String, dynamic> toJson() => _$AchievementDefinitionToJson(this);
 }
+
+@JsonSerializable(explicitToJson: true)
+class AdminDashboardOverviewResponse {
+  final int totalParents;
+  final int totalChildren;
+  final int totalTopics;
+  final int totalLessons;
+  final int totalPublishedLessons;
+  final int totalUnpublishedLessons;
+  final int totalLessonCompletions;
+  final int totalVocabularies;
+  final int totalAchievementsEarned;
+  final DateTime generatedAt;
+
+  AdminDashboardOverviewResponse({
+    required this.totalParents,
+    required this.totalChildren,
+    required this.totalTopics,
+    required this.totalLessons,
+    required this.totalPublishedLessons,
+    required this.totalUnpublishedLessons,
+    required this.totalLessonCompletions,
+    required this.totalVocabularies,
+    required this.totalAchievementsEarned,
+    required this.generatedAt,
+  });
+
+  factory AdminDashboardOverviewResponse.fromJson(Map<String, dynamic> json) => _$AdminDashboardOverviewResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$AdminDashboardOverviewResponseToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class AdminRecentUserResponse {
+  final String userId;
+  final String displayName;
+  final String email;
+  final String role;
+  final DateTime createdAt;
+
+  AdminRecentUserResponse({
+    required this.userId,
+    required this.displayName,
+    required this.email,
+    required this.role,
+    required this.createdAt,
+  });
+
+  factory AdminRecentUserResponse.fromJson(Map<String, dynamic> json) => _$AdminRecentUserResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$AdminRecentUserResponseToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class AdminTopLessonResponse {
+  final String lessonId;
+  final String title;
+  final String topicName;
+  final int completionCount;
+  final double avgScorePercent;
+
+  AdminTopLessonResponse({
+    required this.lessonId,
+    required this.title,
+    required this.topicName,
+    required this.completionCount,
+    required this.avgScorePercent,
+  });
+
+  factory AdminTopLessonResponse.fromJson(Map<String, dynamic> json) => _$AdminTopLessonResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$AdminTopLessonResponseToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class AdminRecentActivityResponse {
+  final String childId;
+  final String childName;
+  final String activityType;
+  final String description;
+  final String? metaValue;
+  final DateTime timestamp;
+
+  AdminRecentActivityResponse({
+    required this.childId,
+    required this.childName,
+    required this.activityType,
+    required this.description,
+    this.metaValue,
+    required this.timestamp,
+  });
+
+  factory AdminRecentActivityResponse.fromJson(Map<String, dynamic> json) => _$AdminRecentActivityResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$AdminRecentActivityResponseToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class AdminDashboardDetailResponse {
+  final AdminDashboardOverviewResponse overview;
+  final List<AdminRecentUserResponse> recentUsers;
+  final List<AdminTopLessonResponse> topLessons;
+  final List<AdminRecentActivityResponse> recentActivities;
+
+  AdminDashboardDetailResponse({
+    required this.overview,
+    required this.recentUsers,
+    required this.topLessons,
+    required this.recentActivities,
+  });
+
+  factory AdminDashboardDetailResponse.fromJson(Map<String, dynamic> json) => _$AdminDashboardDetailResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$AdminDashboardDetailResponseToJson(this);
+}

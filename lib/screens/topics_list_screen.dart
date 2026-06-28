@@ -391,7 +391,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                     if (topicIndex < topicProvider.topics.length) {
                       final topic = topicProvider.topics[topicIndex];
                       final progressItem = progressProvider.summary?.topicProgresses.firstWhere(
-                        (tp) => tp.topicId == topic.id,
+                        (tp) => tp.topicId.toLowerCase() == topic.id.toLowerCase() || tp.topicName.toLowerCase() == topic.name.toLowerCase(),
                         orElse: () => TopicProgressItem(topicId: topic.id, topicName: topic.name, totalLessons: 0, completedLessons: 0, progressPercent: 0),
                       );
 
@@ -560,8 +560,8 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
             text: buttonText,
             baseColor: btnBaseColor,
             shadowColor: btnShadowColor,
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => TopicDetailScreen(
@@ -570,6 +570,13 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                   ),
                 ),
               );
+              if (mounted) {
+                final childId = context.read<ChildProvider>().selectedChild?.id;
+                if (childId != null) {
+                  context.read<ProgressProvider>().loadChildProgress(childId);
+                }
+                setState(() {});
+              }
             },
           ),
         ],

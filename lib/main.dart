@@ -23,7 +23,9 @@ import 'services/achievement_api.dart';
 import 'services/pronunciation_api.dart';
 import 'services/tts_api.dart';
 import 'services/dashboard_api.dart';
+import 'services/admin_dashboard_api.dart';
 import 'repositories/dashboard_repository.dart';
+import 'repositories/admin_dashboard_repository.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/topic_provider.dart';
 import 'providers/auth_provider.dart';
@@ -66,6 +68,9 @@ void main() async {
   final pronunciationRepository = PronunciationRepository(pronunciationApi);
   final ttsRepository = TtsRepository(ttsApi);
   final dashboardRepository = DashboardRepository(dashboardApi);
+  
+  final adminDashboardApi = AdminDashboardApi(apiClient.dio);
+  final adminDashboardRepository = AdminDashboardRepository(adminDashboardApi);
 
   apiClient.onRefreshToken = authRepository.refreshIfNeeded;
 
@@ -83,6 +88,7 @@ void main() async {
         Provider.value(value: pronunciationRepository),
         Provider.value(value: ttsRepository),
         Provider.value(value: dashboardRepository),
+        Provider.value(value: adminDashboardRepository),
         ChangeNotifierProvider(
           create: (context) => AuthProvider(authRepository)..tryRestoreSession(),
         ),

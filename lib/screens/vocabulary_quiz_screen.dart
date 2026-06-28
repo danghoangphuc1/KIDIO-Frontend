@@ -165,6 +165,8 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
           setState(() {
             _selectedAnswer = null;
             _hasAnswered = false;
+            _wrongAnswers.clear();
+            _questions[_currentIndex].options.shuffle();
           });
         }
       });
@@ -174,8 +176,8 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
   Future<void> _playSystemSound(bool isCorrect) async {
     try {
       final soundPath = isCorrect
-          ? 'https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav'
-          : 'https://assets.mixkit.co/active_storage/sfx/2017/2017-84.wav';
+          ? 'https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg'
+          : 'https://actions.google.com/sounds/v1/cartoon/boing.ogg';
       await _audioPlayer.play(UrlSource(soundPath));
     } catch (e) {
       debugPrint('System Sound Error: $e');
@@ -414,28 +416,43 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                                   height: 90,
                                   width: 120,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (ctx, err, stack) => const Text(
-                                    '🦁',
-                                    style: TextStyle(fontSize: 60),
+                                  errorBuilder: (ctx, err, stack) => Text(
+                                    currentQ.vocabulary.word,
+                                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blueAccent),
                                   ),
                                 ),
                               )
-                            : const Text(
-                                '🦁',
-                                style: TextStyle(fontSize: 60),
+                            : Text(
+                                currentQ.vocabulary.word,
+                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                                textAlign: TextAlign.center,
                               ),
                       ),
                       const SizedBox(height: 12),
+
+                      // Word Text if Image is shown
+                      if (currentQ.hasImage)
+                        Text(
+                          currentQ.vocabulary.word,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'FredokaOne',
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      if (currentQ.hasImage) const SizedBox(height: 6),
 
                       // Question text
                       Text(
                         currentQ.questionText,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'FredokaOne',
-                          fontSize: 18,
+                          fontSize: currentQ.hasImage ? 14 : 18,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          color: Colors.yellowAccent,
                         ),
                       ),
                     ],
