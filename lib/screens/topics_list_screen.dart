@@ -571,10 +571,6 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 ),
               );
               if (mounted) {
-                final childId = context.read<ChildProvider>().selectedChild?.id;
-                if (childId != null) {
-                  context.read<ProgressProvider>().loadChildProgress(childId);
-                }
                 setState(() {});
               }
             },

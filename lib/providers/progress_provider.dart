@@ -52,10 +52,6 @@ class ProgressProvider extends ChangeNotifier {
   Future<void> loadChildProgress(String childId) async {
     _isLoading = true;
     _errorMessage = null;
-    _recentActivities = [];
-    _achievements = [];
-    _completedLessons = [];
-    _summary = null;
     notifyListeners();
 
     final box = Hive.box('kidio_cache');
@@ -87,51 +83,31 @@ class ProgressProvider extends ChangeNotifier {
       debugPrint("Error syncing offline progress: $e");
     }
 
-    // 2. Load latest progress from API individually to prevent one failure from breaking all
+    // 2. Load latest progress from API
     try {
-      try {
-        _recentActivities = await _progressRepository.getRecentActivities(childId);
-      } catch (e) {
-        debugPrint("Error fetching recent activities: $e");
-      }
+      final results = await Future.wait([
+        _progressRepository.getRecentActivities(childId),
+        _achievementRepository.getByChild(childId),
+        _progressRepository.getChildSummary(childId),
+        _progressRepository.getCompletedLessons(childId),
+        _achievementRepository.getActiveDefinitions(),
+      ]);
+      
+      _recentActivities = results[0] as List<LessonProgress>;
+      _achievements = results[1] as List<Achievement>;
+      _summary = results[2] as ChildProgressSummary;
+      _completedLessons = results[3] as List<LessonProgress>;
+      _activeDefinitions = results[4] as List<AchievementDefinition>;
 
-      try {
-        _achievements = await _achievementRepository.getByChild(childId);
-      } catch (e) {
-        debugPrint("Error fetching achievements: $e");
-      }
-
-      try {
-        _summary = await _progressRepository.getChildSummary(childId);
-      } catch (e) {
-        debugPrint("Error fetching child summary: $e");
-      }
-
-      try {
-        _completedLessons = await _progressRepository.getCompletedLessons(childId);
-      } catch (e) {
-        debugPrint("Error fetching completed lessons: $e");
-      }
-
-      try {
-        _activeDefinitions = await _achievementRepository.getActiveDefinitions();
-      } catch (e) {
-        debugPrint("Error fetching active definitions: $e");
-      }
-
-      // If summary is still null, it means the API calls failed (offline or BE issue)
-      if (_summary == null) {
-        _loadOfflineFallback(childId);
-      } else {
-        // Cache the loaded data
-        await box.put('cached_recent_activities_$childId', _recentActivities.map((e) => e.toJson()).toList());
-        await box.put('cached_achievements_$childId', _achievements.map((e) => e.toJson()).toList());
-        await box.put('cached_active_definitions_$childId', _activeDefinitions.map((e) => e.toJson()).toList());
-        await box.put('cached_summary_$childId', _summary!.toJson());
-        await box.put('cached_completed_lessons_$childId', _completedLessons.map((e) => e.toJson()).toList());
-      }
+      // Cache the loaded data
+      await box.put('cached_recent_activities_$childId', _recentActivities.map((e) => e.toJson()).toList());
+      await box.put('cached_achievements_$childId', _achievements.map((e) => e.toJson()).toList());
+      await box.put('cached_active_definitions_$childId', _activeDefinitions.map((e) => e.toJson()).toList());
+      await box.put('cached_summary_$childId', _summary!.toJson());
+      await box.put('cached_completed_lessons_$childId', _completedLessons.map((e) => e.toJson()).toList());
     } catch (e) {
       _errorMessage = e.toString();
+      // Fallback to offline cached data
       _loadOfflineFallback(childId);
     } finally {
       // 3. Merge remaining offline unsynced progress entries to ensure correct UI feedback
@@ -273,9 +249,13 @@ class ProgressProvider extends ChangeNotifier {
       final lessonId = item['lessonId'];
       final scorePercent = item['scorePercent'];
       final timeSpentSeconds = item['timeSpentSeconds'];
-      final isCompleted = scorePercent >= _kPassThreshold;
-      final starsEarned = _calcStars(scorePercent);
-      final completedAt = DateTime.parse(item['completedAt']);
+      final isCompleted = scorePercent != null && scorePercent >= _kPassThreshold;
+      final starsEarned = _calcStars(scorePercent ?? 0);
+      
+      final completedAtStr = item['completedAt'];
+      final completedAt = completedAtStr != null 
+          ? (DateTime.tryParse(completedAtStr) ?? DateTime.now())
+          : DateTime.now();
 
       final alreadyCompleted = _completedLessons.any((l) => l.lessonId == lessonId);
       
@@ -309,75 +289,101 @@ class ProgressProvider extends ChangeNotifier {
       }
 
       // 3. Update child summary
-      if (_summary != null) {
-        int starsToAdd = 0;
-        int completedLessonsIncrement = 0;
+      _summary ??= ChildProgressSummary(
+        childId: childId,
+        childName: '',
+        totalLessonsCompleted: 0,
+        totalStars: 0,
+        currentStreakDays: 0,
+        topicProgresses: [],
+      );
 
-        if (isCompleted && !alreadyCompleted) {
-          completedLessonsIncrement = 1;
-          starsToAdd = starsEarned;
+      int starsToAdd = 0;
+      int completedLessonsIncrement = 0;
+
+      if (isCompleted && !alreadyCompleted) {
+        completedLessonsIncrement = 1;
+        starsToAdd = starsEarned;
+      }
+
+      // Find topicId from cached lessons
+      String? topicId;
+      String? topicName;
+      int? topicTotalLessons;
+
+      for (var key in box.keys) {
+        if (key.toString().startsWith('lessons_topic_')) {
+          final List<dynamic>? cachedLessons = box.get(key);
+          if (cachedLessons != null) {
+            final containsLesson = cachedLessons.any((l) => l['id'] == lessonId);
+            if (containsLesson) {
+              topicId = key.toString().replaceFirst('lessons_topic_', '');
+              topicName = topicId;
+              topicTotalLessons = cachedLessons.length;
+              break;
+            }
+          }
         }
+      }
 
-        // Find topicId from cached lessons
-        String? topicId;
-        for (var key in box.keys) {
-          if (key.toString().startsWith('lessons_topic_')) {
-            final List<dynamic>? cachedLessons = box.get(key);
-            if (cachedLessons != null) {
-              final containsLesson = cachedLessons.any((l) => l['id'] == lessonId);
-              if (containsLesson) {
-                topicId = key.toString().replaceFirst('lessons_topic_', '');
+      if (topicId == null) {
+        for (var page = 1; page <= 5; page++) {
+          final List<dynamic>? cachedTopics = box.get('topics_page_$page');
+          if (cachedTopics != null) {
+            for (var t in cachedTopics) {
+              final lessons = t['lessons'] as List<dynamic>?;
+              if (lessons != null && lessons.any((l) => l['id'] == lessonId)) {
+                topicId = t['id'];
+                topicName = t['name'];
+                topicTotalLessons = lessons.length;
                 break;
               }
             }
           }
+          if (topicId != null) break;
         }
-
-        if (topicId == null) {
-          for (var page = 1; page <= 5; page++) {
-            final List<dynamic>? cachedTopics = box.get('topics_page_$page');
-            if (cachedTopics != null) {
-              for (var t in cachedTopics) {
-                final lessons = t['lessons'] as List<dynamic>?;
-                if (lessons != null && lessons.any((l) => l['id'] == lessonId)) {
-                  topicId = t['id'];
-                  break;
-                }
-              }
-            }
-            if (topicId != null) break;
-          }
-        }
-
-        List<TopicProgressItem> updatedTopicProgresses = List.from(_summary!.topicProgresses);
-        if (topicId != null) {
-          final tpIdx = updatedTopicProgresses.indexWhere((tp) => tp.topicId.toLowerCase() == topicId!.toLowerCase());
-          if (tpIdx != -1) {
-            final currentItem = updatedTopicProgresses[tpIdx];
-            final newCompleted = currentItem.completedLessons + completedLessonsIncrement;
-            final newPercent = currentItem.totalLessons == 0 
-                ? 0 
-                : (newCompleted * 100 ~/ currentItem.totalLessons);
-            
-            updatedTopicProgresses[tpIdx] = TopicProgressItem(
-              topicId: currentItem.topicId,
-              topicName: currentItem.topicName,
-              totalLessons: currentItem.totalLessons,
-              completedLessons: newCompleted,
-              progressPercent: newPercent > 100 ? 100 : newPercent,
-            );
-          }
-        }
-
-        _summary = ChildProgressSummary(
-          childId: _summary!.childId,
-          childName: _summary!.childName,
-          totalLessonsCompleted: _summary!.totalLessonsCompleted + completedLessonsIncrement,
-          totalStars: _summary!.totalStars + starsToAdd,
-          currentStreakDays: _summary!.currentStreakDays,
-          topicProgresses: updatedTopicProgresses,
-        );
       }
+
+      List<TopicProgressItem> updatedTopicProgresses = List.from(_summary!.topicProgresses);
+      if (topicId != null) {
+        final tpIdx = updatedTopicProgresses.indexWhere((tp) => tp.topicId.toLowerCase() == topicId!.toLowerCase());
+        if (tpIdx != -1) {
+          final currentItem = updatedTopicProgresses[tpIdx];
+          final newCompleted = currentItem.completedLessons + completedLessonsIncrement;
+          final newPercent = currentItem.totalLessons == 0 
+              ? 0 
+              : (newCompleted * 100 ~/ currentItem.totalLessons);
+          
+          updatedTopicProgresses[tpIdx] = TopicProgressItem(
+            topicId: currentItem.topicId,
+            topicName: currentItem.topicName,
+            totalLessons: currentItem.totalLessons,
+            completedLessons: newCompleted,
+            progressPercent: newPercent > 100 ? 100 : newPercent,
+          );
+        } else {
+          final newCompleted = completedLessonsIncrement;
+          final newPercent = (topicTotalLessons == null || topicTotalLessons == 0) 
+              ? 0 
+              : (newCompleted * 100 ~/ topicTotalLessons);
+          updatedTopicProgresses.add(TopicProgressItem(
+            topicId: topicId,
+            topicName: topicName ?? topicId,
+            totalLessons: topicTotalLessons ?? 1,
+            completedLessons: newCompleted,
+            progressPercent: newPercent > 100 ? 100 : newPercent,
+          ));
+        }
+      }
+
+      _summary = ChildProgressSummary(
+        childId: _summary!.childId,
+        childName: _summary!.childName,
+        totalLessonsCompleted: _summary!.totalLessonsCompleted + completedLessonsIncrement,
+        totalStars: _summary!.totalStars + starsToAdd,
+        currentStreakDays: _summary!.currentStreakDays,
+        topicProgresses: updatedTopicProgresses,
+      );
     }
   }
 
@@ -391,7 +397,10 @@ class ProgressProvider extends ChangeNotifier {
         orElse: () => null,
       );
       if (match != null) {
-        final completedAt = DateTime.parse(match['completedAt']);
+        final completedAtStr = match['completedAt'];
+        final completedAt = completedAtStr != null 
+            ? (DateTime.tryParse(completedAtStr) ?? DateTime.now())
+            : DateTime.now();
         final scorePercent = match['scorePercent'];
         final timeSpentSeconds = match['timeSpentSeconds'];
         return LessonProgress(
@@ -468,10 +477,21 @@ class ProgressProvider extends ChangeNotifier {
           completedAt: completedAt,
         ));
 
-        // Update child summary
-        if (_summary != null) {
+          // Update child summary
+          _summary ??= ChildProgressSummary(
+            childId: childId,
+            childName: '',
+            totalLessonsCompleted: 0,
+            totalStars: 0,
+            currentStreakDays: 0,
+            topicProgresses: [],
+          );
+
           // Find topicId from cached lessons
           String? topicId;
+          String? topicName;
+          int? topicTotalLessons;
+
           for (var key in box.keys) {
             if (key.toString().startsWith('lessons_topic_')) {
               final List<dynamic>? cachedLessons = box.get(key);
@@ -479,6 +499,8 @@ class ProgressProvider extends ChangeNotifier {
                 final containsLesson = cachedLessons.any((l) => l['id'] == lessonId);
                 if (containsLesson) {
                   topicId = key.toString().replaceFirst('lessons_topic_', '');
+                  topicName = topicId;
+                  topicTotalLessons = cachedLessons.length;
                   break;
                 }
               }
@@ -493,6 +515,8 @@ class ProgressProvider extends ChangeNotifier {
                   final lessons = t['lessons'] as List<dynamic>?;
                   if (lessons != null && lessons.any((l) => l['id'] == lessonId)) {
                     topicId = t['id'];
+                    topicName = t['name'];
+                    topicTotalLessons = lessons.length;
                     break;
                   }
                 }
@@ -503,7 +527,7 @@ class ProgressProvider extends ChangeNotifier {
 
           List<TopicProgressItem> updatedTopicProgresses = List.from(_summary!.topicProgresses);
           if (topicId != null) {
-            final tpIdx = updatedTopicProgresses.indexWhere((tp) => tp.topicId == topicId);
+            final tpIdx = updatedTopicProgresses.indexWhere((tp) => tp.topicId.toLowerCase() == topicId!.toLowerCase());
             if (tpIdx != -1) {
               final currentItem = updatedTopicProgresses[tpIdx];
               final newCompleted = currentItem.completedLessons + 1;
@@ -518,6 +542,18 @@ class ProgressProvider extends ChangeNotifier {
                 completedLessons: newCompleted,
                 progressPercent: newPercent > 100 ? 100 : newPercent,
               );
+            } else {
+              final newCompleted = 1;
+              final newPercent = (topicTotalLessons == null || topicTotalLessons == 0) 
+                  ? 0 
+                  : (newCompleted * 100 ~/ topicTotalLessons);
+              updatedTopicProgresses.add(TopicProgressItem(
+                topicId: topicId,
+                topicName: topicName ?? topicId,
+                totalLessons: topicTotalLessons ?? 1,
+                completedLessons: newCompleted,
+                progressPercent: newPercent > 100 ? 100 : newPercent,
+              ));
             }
           }
 
@@ -529,7 +565,6 @@ class ProgressProvider extends ChangeNotifier {
             currentStreakDays: _summary!.currentStreakDays,
             topicProgresses: updatedTopicProgresses,
           );
-        }
       }
     }
   }
