@@ -10,34 +10,44 @@ class AchievementRepository {
 
   Future<List<AchievementDefinition>> getActiveDefinitions() => _api.getActiveDefinitions();
 
-  Future<List<Achievement>> getDefinitions() => _api.getDefinitions();
+  Future<List<AchievementDefinition>> getDefinitions() => _api.getDefinitions();
 
-  Future<Achievement> getDefinitionById(String id) => _api.getDefinitionById(id);
+  Future<AchievementDefinition> getDefinitionById(String id) => _api.getDefinitionById(id);
 
-  Future<Achievement> createDefinition({
-    required String title,
+  Future<AchievementDefinition> createDefinition({
+    required String type,
+    required int threshold,
+    required String name,
     String? description,
-    String? iconUrl,
-    String? achievementType,
+    String? badgeUrl,
+    int orderIndex = 0,
   }) => _api.createDefinition(
-        title: title,
+        type: type,
+        threshold: threshold,
+        name: name,
         description: description,
-        iconUrl: iconUrl,
-        achievementType: achievementType,
+        badgeUrl: badgeUrl,
+        orderIndex: orderIndex,
       );
 
-  Future<Achievement> updateDefinition({
+  Future<AchievementDefinition> updateDefinition({
     required String id,
-    required String title,
+    required String type,
+    required int threshold,
+    required String name,
     String? description,
-    String? iconUrl,
-    String? achievementType,
+    String? badgeUrl,
+    required int orderIndex,
+    required bool isActive,
   }) => _api.updateDefinition(
         id: id,
-        title: title,
+        type: type,
+        threshold: threshold,
+        name: name,
         description: description,
-        iconUrl: iconUrl,
-        achievementType: achievementType,
+        badgeUrl: badgeUrl,
+        orderIndex: orderIndex,
+        isActive: isActive,
       );
 
   Future<void> deleteDefinition(String id) => _api.deleteDefinition(id);

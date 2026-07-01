@@ -36,13 +36,13 @@ class AchievementApi {
     }
   }
 
-  Future<List<Achievement>> getDefinitions() async {
+  Future<List<AchievementDefinition>> getDefinitions() async {
     try {
       final response = await _dio.get('Achievement/definitions');
       final data = response.data['data'];
       if (data != null && data['items'] is List) {
         return (data['items'] as List)
-            .map((json) => Achievement.fromJson(json as Map<String, dynamic>))
+            .map((json) => AchievementDefinition.fromJson(json as Map<String, dynamic>))
             .toList();
       }
       return [];
@@ -51,49 +51,59 @@ class AchievementApi {
     }
   }
 
-  Future<Achievement> getDefinitionById(String id) async {
+  Future<AchievementDefinition> getDefinitionById(String id) async {
     try {
       final response = await _dio.get('Achievement/definitions/$id');
-      return Achievement.fromJson(response.data['data']);
+      return AchievementDefinition.fromJson(response.data['data']);
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<Achievement> createDefinition({
-    required String title,
+  Future<AchievementDefinition> createDefinition({
+    required String type,
+    required int threshold,
+    required String name,
     String? description,
-    String? iconUrl,
-    String? achievementType,
+    String? badgeUrl,
+    int orderIndex = 0,
   }) async {
     try {
       final response = await _dio.post('Achievement/definitions', data: {
-        'title': title,
+        'type': type,
+        'threshold': threshold,
+        'name': name,
         'description': description,
-        'iconUrl': iconUrl,
-        'achievementType': achievementType,
+        'badgeUrl': badgeUrl,
+        'orderIndex': orderIndex,
       });
-      return Achievement.fromJson(response.data['data']);
+      return AchievementDefinition.fromJson(response.data['data']);
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<Achievement> updateDefinition({
+  Future<AchievementDefinition> updateDefinition({
     required String id,
-    required String title,
+    required String type,
+    required int threshold,
+    required String name,
     String? description,
-    String? iconUrl,
-    String? achievementType,
+    String? badgeUrl,
+    required int orderIndex,
+    required bool isActive,
   }) async {
     try {
       final response = await _dio.put('Achievement/definitions/$id', data: {
-        'title': title,
+        'type': type,
+        'threshold': threshold,
+        'name': name,
         'description': description,
-        'iconUrl': iconUrl,
-        'achievementType': achievementType,
+        'badgeUrl': badgeUrl,
+        'orderIndex': orderIndex,
+        'isActive': isActive,
       });
-      return Achievement.fromJson(response.data['data']);
+      return AchievementDefinition.fromJson(response.data['data']);
     } catch (e) {
       rethrow;
     }

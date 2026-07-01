@@ -112,30 +112,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                    CustomSnackBar.show(context, 'Đổi mã PIN thành công');
                    _reloadData();
                  }
-              } else if (value == 'toggle_pin') {
-                 try {
-                   if (_hasPin) {
-                     // Disable PIN
-                     final success = await context.read<AuthProvider>().setParentPin('');
-                     if (success && mounted) {
-                       CustomSnackBar.show(context, 'Đã vô hiệu hóa mã PIN Phụ huynh');
-                       setState(() => _hasPin = false);
-                     } else if (mounted) {
-                       CustomSnackBar.show(context, 'Lỗi: ${context.read<AuthProvider>().errorMessage}', isError: true);
-                     }
-                   } else {
-                     // Enable PIN
-                     final created = await import_parent_pin_dialogs.ParentPinDialogs.showCreatePinDialog(context);
-                     if (created == true && mounted) {
-                       CustomSnackBar.show(context, 'Đã bật mã PIN Phụ huynh');
-                       setState(() => _hasPin = true);
-                     }
-                   }
-                 } catch (e) {
-                   if (mounted) {
-                     CustomSnackBar.show(context, 'Lỗi: $e', isError: true);
-                   }
-                 }
               } else if (value == 'change_password') {
                  Navigator.push(
                    context,
@@ -145,7 +121,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'change_pin', child: Text('Thay đổi mã PIN')),
-              PopupMenuItem(value: 'toggle_pin', child: Text(_hasPin ? 'Vô hiệu hóa mã PIN' : 'Bật mã PIN')),
               const PopupMenuDivider(),
               const PopupMenuItem(value: 'change_password', child: Text('Đổi mật khẩu')),
             ],
@@ -1018,11 +993,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                 constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 48),
                 child: Table(
                   columnWidths: const {
-                    0: FlexColumnWidth(1.2), // Rank
-                    1: FlexColumnWidth(3),   // Name
-                    2: FlexColumnWidth(2),   // Lessons Completed
-                    3: FlexColumnWidth(1.8), // Stars
-                    4: FlexColumnWidth(2.2), // Time Spent
+                    0: FlexColumnWidth(1.5), // Rank
+                    1: FlexColumnWidth(2.5), // Name
+                    2: FlexColumnWidth(2.2), // Lessons Completed
+                    3: FlexColumnWidth(1.5), // Stars
+                    4: FlexColumnWidth(2.3), // Time Spent
                   },
                   border: TableBorder(
                     horizontalInside: BorderSide(color: const Color(0xFF1E3A8A).withOpacity(0.1), width: 1),
@@ -1032,11 +1007,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                     TableRow(
                       decoration: BoxDecoration(color: const Color(0xFFEFF6FF).withOpacity(0.6)),
                       children: const [
-                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Hạng', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
-                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Tên Bé', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
-                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Đã học', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
-                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Sao ⭐', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
-                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 10), child: Text('Thời gian', style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 4), child: Text('Hạng', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 4), child: Text('Tên Bé', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 4), child: Text('Đã học', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 4), child: Text('Sao ⭐', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
+                        Padding(padding: EdgeInsets.symmetric(vertical: 14, horizontal: 4), child: Text('Thời gian', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13))),
                       ],
                     ),
                     // Body
@@ -1045,31 +1020,29 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> with Sing
                       return TableRow(
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                            child: Row(
-                              children: [
-                                if (isTop1)
-                                  const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 20)
-                                else
-                                  Text('${c.rank}', style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
-                              ],
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: isTop1
+                                  ? const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 20)
+                                  : Text('${c.rank}', style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                            child: Text(c.childName, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                            child: Text(c.childName, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                            child: Text('${c.completedLessons} bài', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                            child: Text('${c.completedLessons} bài', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                            child: Text('${c.totalStars}', style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                            child: Text('${c.totalStars}', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'FredokaOne', fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A))),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                            child: Text(formatDuration(c.timeSpentSeconds), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                            child: Text(formatDuration(c.timeSpentSeconds), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
                           ),
                         ],
                       );

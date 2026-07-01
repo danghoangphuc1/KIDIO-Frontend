@@ -573,17 +573,20 @@ class _VocabLearnScreenState extends State<VocabLearnScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          vocab.word.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'FredokaOne',
-                            fontSize: 34,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFFFF7E06),
-                            letterSpacing: 1,
-                          ),
-                        ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            vocab.word.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'FredokaOne',
+                              fontSize: 34,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFFFF7E06),
+                              letterSpacing: 1,
+                            ),
+                          ).animate(key: ValueKey(vocab.id)).shake(duration: 600.ms),
+                        ),
                         if (vocab.phoneticText != null && vocab.phoneticText!.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
